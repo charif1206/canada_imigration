@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { google } from 'googleapis';
+import * as path from 'path';
+import * as fs from 'fs';
 
 @Injectable()
 export class SheetsService {
@@ -15,6 +17,29 @@ export class SheetsService {
 
   private async initializeGoogleSheets() {
     try {
+      // Try to use credentials file path first
+      const credentialsPath = this.configService.get<string>('GOOGLE_CREDENTIALS_PATH');
+      
+      if (credentialsPath) {
+        const absolutePath = path.resolve(process.cwd(), credentialsPath);
+        
+        if (fs.existsSync(absolutePath)) {
+          this.logger.log(`Loading Google credentials from: ${absolutePath}`);
+          
+          const auth = new google.auth.GoogleAuth({
+            keyFile: absolutePath,
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+          });
+
+          this.sheets = google.sheets({ version: 'v4', auth });
+          this.logger.log('✅ Google Sheets service initialized with credentials file');
+          return;
+        } else {
+          this.logger.warn(`Credentials file not found at: ${absolutePath}`);
+        }
+      }
+
+      // Fallback to environment variables
       const serviceAccountEmail = this.configService.get<string>('GOOGLE_SERVICE_ACCOUNT_EMAIL');
       const privateKey = this.configService.get<string>('GOOGLE_PRIVATE_KEY')?.replace(/\\n/g, '\n');
 
@@ -31,7 +56,7 @@ export class SheetsService {
       );
 
       this.sheets = google.sheets({ version: 'v4', auth });
-      this.logger.log('Google Sheets service initialized');
+      this.logger.log('✅ Google Sheets service initialized with environment variables');
     } catch (error) {
       this.logger.error(`Failed to initialize Google Sheets: ${error}`);
     }

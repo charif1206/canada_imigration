@@ -11,9 +11,9 @@ export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [loginMethod, setLoginMethod] = useState<'email' | 'id'>('email');
   const [formData, setFormData] = useState({
-    identifier: '', // Can be email or client ID
+    email: '',
+    password: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -29,40 +29,28 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      let clientId = formData.identifier;
-      let client;
-
-      if (loginMethod === 'email') {
-        // Search for client by email
-        const response = await fetch(`${API_URL}/clients`);
-        const clients = await response.json();
-        
-        interface ClientData {
-          id: string;
-          email: string;
-          [key: string]: unknown;
-        }
-        
-        client = clients.find((c: ClientData) => c.email.toLowerCase() === formData.identifier.toLowerCase());
-        
-        if (!client) {
-          throw new Error('No account found with this email address');
-        }
-        
-        clientId = client.id;
-      } else {
-        // Fetch client by ID
-        const response = await fetch(`${API_URL}/clients/${formData.identifier}`);
-        
-        if (!response.ok) {
-          throw new Error('Invalid Client ID');
-        }
-        
-        client = await response.json();
+      // Search for client by email
+      const response = await fetch(`${API_URL}/clients`);
+      const clients = await response.json();
+      
+      interface ClientData {
+        id: string;
+        email: string;
+        password?: string;
+        [key: string]: unknown;
+      }
+      
+      const client = clients.find((c: ClientData) => c.email.toLowerCase() === formData.email.toLowerCase());
+      
+      if (!client) {
+        throw new Error('No account found with this email address');
       }
 
+      // For now, we'll skip password validation since backend doesn't store client passwords
+      // In production, you should add password authentication to the backend
+      
       // Store client data
-      authUtils.setAuth(clientId, client);
+      authUtils.setAuth(client.id, client);
 
       // Redirect to status page
       router.push('/status');
@@ -91,52 +79,42 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Login Method Selector */}
-        <div className="flex gap-2 mb-6">
-          <button
-            type="button"
-            onClick={() => setLoginMethod('email')}
-            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-              loginMethod === 'email'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            Email
-          </button>
-          <button
-            type="button"
-            onClick={() => setLoginMethod('id')}
-            className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
-              loginMethod === 'id'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            Client ID
-          </button>
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Email */}
           <div>
-            <label htmlFor="identifier" className="block text-sm font-medium text-gray-700 mb-2">
-              {loginMethod === 'email' ? 'Email Address' : 'Client ID'}
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              Email Address
             </label>
             <input
-              id="identifier"
-              name="identifier"
-              type={loginMethod === 'email' ? 'email' : 'text'}
+              id="email"
+              name="email"
+              type="email"
               required
-              value={formData.identifier}
+              value={formData.email}
               onChange={handleChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder={loginMethod === 'email' ? 'your@email.com' : 'Your Client ID'}
+              placeholder="your@email.com"
             />
-            {loginMethod === 'id' && (
-              <p className="mt-2 text-sm text-gray-500">
-                You received your Client ID via email after registration
-              </p>
-            )}
+          </div>
+
+          {/* Password */}
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              value={formData.password}
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Your password"
+            />
+            <p className="mt-2 text-sm text-gray-500">
+              Note: Password validation coming soon. Currently login by email only.
+            </p>
           </div>
 
           <button

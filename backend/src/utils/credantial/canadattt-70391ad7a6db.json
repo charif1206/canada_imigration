@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "canadattt",
+  "private_key_id": "70391ad7a6dbc1c6a467efe24b2187327b17498b",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCrb6oK0fvL4DjE\nxyusZprARquwFlGlHz0ktXOPBUVojpzanI7wmeIANOrFiTAZ8PTDTE+U4iSHIlN8\neYceLMs8ND7yzxzyGkZUWvJXiqKYNE4fQAaUC6FmuQ7LYvlcBQwpDBPF0XFikwlH\nXZ6SRDBhHsD0CltqtePut+JnDopwtLhu0TQIoTLD+zB9YrsnAhNKTTxG2YL5k587\nyQjQpjwE3474m/J2VGrjVu7Z0tMDjIZPmE8itEBFYZlFaBpgB0hO/9ZuRHhRaMs5\nYvqUZ3dWadJaGmlQCk8G4N973qgbYHcvHkroEElaLCJydBaCU1dbp5brCRvpzavr\nEVQbh+LZAgMBAAECggEADFdiKnv+GEnMkGblpxguUwHrZWZf64cFje1Vk7HNkra0\nhjzPwfST+0+T6JNFEBMDbcVCM925QzSmha8Seeq/2TZKI0zjYK7hSfyPllt7s8EN\nMCz55EG3lWdkUCIwgQ44d0KAMGUQ2GetGvL7gbxQrscp3Q+bT+Hm9hYNAX3/m5ga\nuzx6xJpS30msGUrd0M9i3hsmIm4PnVTesIh3RoPiqh9xeULr7hWvyG8Fv0G+ztwc\ndG8fYUd/GCvZh2bqv3+V6ON4kY0gzRjLXoYImVBxuqwhWAEEr8wvuMKhrDomEhRC\nmdk++CcOWFM+9i16E5xwQ5mJuaN9deXxdBvD9AYFQQKBgQDdPrlFbFhv5HWrx3xN\npk0ry0TISq9dDNMC8t87M2/okAxh+sZqg9IyXYsDVP0uMTUq24SMb54WEjdyIABi\nq7GaCV15n1M70vbN4VN4pFZxq44eFlyecXyNj3jDYXX2RJa3kE2LZG1WCmXK2EWw\nFXdk/+nYGHxtcOm88n/zcgzOmQKBgQDGXeY27F6aWN5iiMwESxQOXk42u5paKFUk\n3ehUAgIYm+vhQ9ZgEkXHyZK+1u0YTiMPGs/9r/dpfmwCTWRmRNsyWmxF0FJ2AYQb\nrC9hMvZKArA9WXzKRpLUAajxThwWjocGImUTWqPyl6H4pf5IhbJXbqs+r/kf/mnP\n3NXFaQ2eQQKBgQCvbXXAa1lwV2lKbOHOPCgCqql+W2HTWUDTnLqOmYmJkPaQliTP\n/ngkAXIhkTkzcEclFWxzYmmqPIWEU4Wat2MarYRV1JRN4khaFOl3xm7YsNv+VWLZ\nK0lEgdeSrGu5esc7BAvIlDfxukreXUBcj5jdF+JWu4ulx5s+e9YitXMcOQKBgHyA\nQNamAjZjoqg7bbkgGiVugS6PDrCZcd8ivAfF/uTNL/4BotJHha6AUG8g3EyN9ikr\nzfFOeT2oEEhdpK8fdmgjIqOqvaa9CtqHdnFOGBCZoV3QBae7JbqUlCFnwe9SY2Kx\nQbklAZNoIku6e1+vMiD4H9jHf9fZyTWiSDWP2vFBAoGAGZbqPABtRG++KAOcYDlT\nJvrmktWoOK9ZJIZCn6nx3ZcX9OHAUhueQ/bhsuWO9KanQHiEACxLWXT+FAjh/50c\n3JAR1SYjWh6uMo4P9w0fNqZJKeAo2egmN4WHxW4DK0CCKbfPQwisdvoy6/mls+r1\nHpvaB7+W8tVM/hf0BbmdHGs=\n-----END PRIVATE KEY-----\n",
+  "client_email": "canada@canadattt.iam.gserviceaccount.com",
+  "client_id": "117576084637035130777",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/canada%40canadattt.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
