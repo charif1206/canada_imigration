@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id                String    @id @default(uuid())
+  name              String
+  email             String    @unique
+  phone             String
+  passportNumber    String?
+  nationality       String?
+  dateOfBirth       DateTime?
+  address           String?
+  immigrationType   String?   // e.g., "Express Entry", "Family Sponsorship", etc.
+  isValidated       Boolean   @default(false)
+  validatedAt       DateTime?
+  validatedBy       String?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  messages          Message[]
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  email     String?
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  subject   String
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@index([clientId])
+}
