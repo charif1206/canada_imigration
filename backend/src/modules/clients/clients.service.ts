@@ -1,11 +1,15 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateClientDto } from './dto/create-client.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { ValidateClientDto } from './dto/validate-client.dto';
+import { ClientRegisterDto } from './dto/client-register.dto';
+import { ClientLoginDto } from './dto/client-login.dto';
 import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { SheetsService } from '../sheets/sheets.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class ClientsService {
@@ -16,7 +20,132 @@ export class ClientsService {
     private readonly whatsappService: WhatsAppService,
     private readonly sheetsService: SheetsService,
     private readonly notificationsService: NotificationsService,
+    private readonly jwtService: JwtService,
   ) {}
+
+  async registerClient(registerDto: ClientRegisterDto) {
+    this.logger.log(`Registering new client: ${registerDto.email}`);
+
+    // Check if email already exists
+    const existingClient = await this.prisma.client.findUnique({
+      where: { email: registerDto.email },
+    });
+
+    if (existingClient) {
+      throw new ConflictException('Email already registered');
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+
+    // Create client
+    const client = await this.prisma.client.create({
+      data: {
+        name: registerDto.name,
+        email: registerDto.email,
+        password: hashedPassword,
+        phone: registerDto.phone,
+        immigrationType: registerDto.immigrationType,
+      } as any,
+    });
+
+    // Send notifications
+    await this.whatsappService.sendMessageToAdmin(
+      `🆕 New client registered!\n\nName: ${client.name}\nEmail: ${client.email}\nPhone: ${client.phone}\nType: ${client.immigrationType || 'Not specified'}`
+    );
+    
+    await this.sheetsService.sendDataToSheet(client);
+    this.notificationsService.notifyClientCreation(client.id);
+
+    // Generate JWT token
+    const token = this.jwtService.sign({
+      sub: client.id,
+      email: client.email,
+      type: 'client',
+    });
+
+    // Remove password from response
+    const { password, ...clientData } = client as any;
+
+    return {
+      access_token: token,
+      client: clientData,
+    };
+  }
+
+  async loginClient(loginDto: ClientLoginDto) {
+    this.logger.log(`Client login attempt: ${loginDto.email}`);
+
+    try {
+      // Find client with password using raw query
+      this.logger.debug(`Querying database for email: ${loginDto.email}`);
+      const client = await this.prisma.$queryRaw`
+        SELECT * FROM "Client" WHERE email = ${loginDto.email}
+      ` as any[];
+
+      this.logger.debug(`Query result: ${client?.length || 0} client(s) found`);
+
+      if (!client || client.length === 0) {
+        this.logger.warn(`Login failed: No client found with email ${loginDto.email}`);
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      const clientData = client[0];
+      this.logger.debug(`Client found with id: ${clientData.id}`);
+
+      // Verify password
+      this.logger.debug(`Verifying password for client: ${clientData.id}`);
+      const isPasswordValid = await bcrypt.compare(loginDto.password, clientData.password);
+
+      if (!isPasswordValid) {
+        this.logger.warn(`Login failed: Invalid password for email ${loginDto.email}`);
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      this.logger.debug(`Password verified successfully for client: ${clientData.id}`);
+
+      // Generate JWT token
+      this.logger.debug(`Generating JWT token for client: ${clientData.id}`);
+      const token = this.jwtService.sign({
+        sub: clientData.id,
+        email: clientData.email,
+        type: 'client',
+      });
+
+      this.logger.log(`Client login successful: ${loginDto.email}`);
+
+      // Remove password from response
+      const { password, ...responseData } = clientData;
+
+      return {
+        access_token: token,
+        client: responseData,
+      };
+    } catch (error) {
+      this.logger.error(`Login error for ${loginDto.email}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async getClientProfile(clientId: string) {
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+      include: {
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
+      },
+    });
+
+    if (!client) {
+      throw new NotFoundException('Client not found');
+    }
+
+    // Remove password from response
+    const { password, ...clientData } = client as any;
+    return clientData;
+  }
 
   async createClient(createClientDto: CreateClientDto) {
     this.logger.log(`Creating new client: ${createClientDto.email}`);
@@ -80,12 +209,7 @@ export class ClientsService {
     // Notify client about validation
     this.notificationsService.notifyClientValidation(id, validateDto.isValidated);
     
-    if (validateDto.isValidated) {
-      await this.whatsappService.sendClientMessage(
-        client.phone,
-        `Congratulations ${client.name}! Your immigration application has been validated. We will contact you soon with next steps.`
-      );
-    }
+
 
     return client;
   }

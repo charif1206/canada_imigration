@@ -11,6 +11,7 @@ model Client {
   id                String    @id @default(uuid())
   name              String
   email             String    @unique
+  password          String    @default("$2b$10$defaultpasswordhash")
   phone             String
   passportNumber    String?
   nationality       String?

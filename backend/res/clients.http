@@ -1,0 +1,249 @@
+### ========================================
+### Clients Module Tests
+### Canada Immigration Application
+### ========================================
+
+### Variables
+@baseUrl = http://localhost:3000
+@contentType = application/json
+
+# Get admin token first from auth.http
+@adminToken = your_admin_token_here
+
+### ========================================
+### Test 1: Create Client - Complete Data
+### ========================================
+# @name createClient1
+POST {{baseUrl}}/clients
+Content-Type: {{contentType}}
+
+{
+  "name": "John Smith",
+  "email": "john.smith@example.com",
+  "phone": "+1-416-555-0001",
+  "passportNumber": "CA123456789",
+  "nationality": "American",
+  "dateOfBirth": "1990-05-15",
+  "address": "123 Main Street, Toronto, ON M5V 2T6, Canada",
+  "immigrationType": "skilled-worker",
+  "notes": "Software Engineer with 5 years experience"
+}
+
+### Expected: 201 Created with client data
+
+### ========================================
+### Test 2: Create Client - Minimal Data
+### Only required fields
+### ========================================
+# @name createClient2
+POST {{baseUrl}}/clients
+Content-Type: {{contentType}}
+
+{
+  "name": "Jane Doe",
+  "email": "jane.doe@example.com",
+  "phone": "+1-416-555-0002"
+}
+
+### Expected: 201 Created
+
+### ========================================
+### Test 3: Get All Clients
+### ========================================
+GET {{baseUrl}}/clients
+
+### Expected: Array of all clients with messages
+
+### ========================================
+### Test 4: Get Client by ID
+### Replace {clientId} with actual ID from Test 1 response
+### ========================================
+@clientId = {{createClient1.response.body.id}}
+GET {{baseUrl}}/clients/{{clientId}}
+
+### Expected: Single client with all details
+
+### ========================================
+### Test 5: Get Validation Status
+### ========================================
+GET {{baseUrl}}/clients/{{clientId}}/validation-status
+
+### Expected: Client validation status
+
+### ========================================
+### Test 6: Validate Client (Admin Only)
+### ========================================
+PATCH {{baseUrl}}/clients/{{clientId}}/validate
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "isValidated": true,
+  "notes": "All documents verified. Application approved."
+}
+
+### Expected: Updated client with isValidated = true
+
+### ========================================
+### Test 7: Validate Client Without Token
+### Should fail with 401
+### ========================================
+PATCH {{baseUrl}}/clients/{{clientId}}/validate
+Content-Type: {{contentType}}
+
+{
+  "isValidated": true,
+  "notes": "Should fail"
+}
+
+### Expected: 401 Unauthorized
+
+### ========================================
+### Test 8: Create Client with Duplicate Email
+### Should fail
+### ========================================
+POST {{baseUrl}}/clients
+Content-Type: {{contentType}}
+
+{
+  "name": "Duplicate Test",
+  "email": "john.smith@example.com",
+  "phone": "+1-416-555-9999"
+}
+
+### Expected: Error - Email already exists
+
+### ========================================
+### Test 9: Create Client with Invalid Email
+### Should fail validation
+### ========================================
+POST {{baseUrl}}/clients
+Content-Type: {{contentType}}
+
+{
+  "name": "Invalid Email",
+  "email": "not-an-email",
+  "phone": "+1-416-555-9998"
+}
+
+### Expected: 400 Bad Request - Validation error
+
+### ========================================
+### Test 10: Create Client - Missing Required Fields
+### Should fail validation
+### ========================================
+POST {{baseUrl}}/clients
+Content-Type: {{contentType}}
+
+{
+  "name": "Incomplete"
+}
+
+### Expected: 400 Bad Request - Missing email and phone
+
+### ========================================
+### Test 11: Get Non-existent Client
+### Should return 404
+### ========================================
+GET {{baseUrl}}/clients/invalid-id-12345
+
+### Expected: 404 Not Found
+
+### ========================================
+### Test 12: Create Multiple Clients - Different Immigration Types
+### ========================================
+
+### Express Entry
+POST {{baseUrl}}/clients
+Content-Type: {{contentType}}
+
+{
+  "name": "Maria Garcia",
+  "email": "maria.garcia@example.com",
+  "phone": "+1-416-555-0003",
+  "nationality": "Spanish",
+  "immigrationType": "express-entry"
+}
+
+###
+
+### Student Visa
+POST {{baseUrl}}/clients
+Content-Type: {{contentType}}
+
+{
+  "name": "Ahmed Hassan",
+  "email": "ahmed.hassan@example.com",
+  "phone": "+1-416-555-0004",
+  "nationality": "Egyptian",
+  "immigrationType": "student-visa"
+}
+
+###
+
+### Family Sponsorship
+POST {{baseUrl}}/clients
+Content-Type: {{contentType}}
+
+{
+  "name": "Li Wei",
+  "email": "li.wei@example.com",
+  "phone": "+1-416-555-0005",
+  "nationality": "Chinese",
+  "immigrationType": "family-sponsorship"
+}
+
+###
+
+### Business Investor
+POST {{baseUrl}}/clients
+Content-Type: {{contentType}}
+
+{
+  "name": "Carlos Rodriguez",
+  "email": "carlos.rodriguez@example.com",
+  "phone": "+1-416-555-0006",
+  "nationality": "Brazilian",
+  "immigrationType": "business-investor"
+}
+
+###
+
+### Refugee
+POST {{baseUrl}}/clients
+Content-Type: {{contentType}}
+
+{
+  "name": "Fatima Al-Rashid",
+  "email": "fatima.alrashid@example.com",
+  "phone": "+1-416-555-0007",
+  "nationality": "Syrian",
+  "immigrationType": "refugee"
+}
+
+###
+
+### Work Permit
+POST {{baseUrl}}/clients
+Content-Type: {{contentType}}
+
+{
+  "name": "Raj Patel",
+  "email": "raj.patel@example.com",
+  "phone": "+1-416-555-0008",
+  "nationality": "Indian",
+  "immigrationType": "work-permit"
+}
+
+### ========================================
+### Success Criteria:
+### ✅ Test 1-2: Clients created successfully
+### ✅ Test 3: Returns array of clients
+### ✅ Test 4: Returns single client
+### ✅ Test 5: Returns validation status
+### ✅ Test 6: Client validated successfully
+### ✅ Test 7: Returns 401 Unauthorized
+### ✅ Tests 8-10: Return validation errors
+### ✅ Test 11: Returns 404 Not Found
+### ✅ Test 12: All immigration types created
+### ========================================

@@ -1,0 +1,385 @@
+### Client Authentication Tests
+### Base URL Configuration
+@baseUrl = http://localhost:3000
+@contentType = application/json
+@clientToken = 
+
+### ⚠️ IMPORTANT: Start fresh with a clean email each time!
+### The database might have old data with default password hashes
+
+### QUICK START WORKFLOW - Run these tests in order
+### ==============================================
+
+### QS-1: Register Fresh Test Client (ALWAYS use unique email)
+POST {{baseUrl}}/clients/register
+Content-Type: {{contentType}}
+
+{
+  "name": "charif",
+  "email": "che@gmail.com",
+  "password": "123456",
+  "phone": "+1234567890",
+  "immigrationType": "skilled-worker"
+}
+
+
+POST {{baseUrl}}/clients/register
+Content-Type: {{contentType}}
+
+{
+  "name": "abed meram charif",
+  "email": "che@gmail.com",
+  "password": "123456",
+  "phone": "+1234567890",
+  "immigrationType": "skilled-worker"
+}
+
+
+POST {{baseUrl}}/clients/login
+Content-Type: {{contentType}}
+{
+  "email": "che@gmail.com",
+  "password": "123456",
+
+}
+
+POST {{baseUrl}}/clients/login
+Content-Type: {{contentType}}
+
+{
+  "name": "abed meram charif",
+
+  "password": "123456"
+
+}
+
+
+
+###
+
+### QS-2: Login with Same Credentials (copy email from QS-1 response)
+# ⚠️ CRITICAL: Copy the EXACT email from QS-1 response and paste it here
+# Example: if QS-1 returns "test-client-1761955949@example.com", 
+# you MUST use that exact same email below
+POST {{baseUrl}}/clients/login
+Content-Type: {{contentType}}
+
+{
+  "email": "test-client-1761955949@example.com",
+  "password": "TestPass123!"
+}
+
+###
+
+### QS-3: Get Profile (copy token from QS-2 response to @clientToken above)
+GET {{baseUrl}}/clients/profile
+Authorization: Bearer {{clientToken}}
+
+###
+
+### 🔍 DIAGNOSTIC: Get All Clients (to see what's registered)
+# Use this to see all registered clients and their emails
+# This helps you understand what emails exist in the database
+GET {{baseUrl}}/clients
+Authorization: Bearer {{clientToken}}
+
+###
+### ==============================================
+### DETAILED TESTS BELOW
+### ==============================================
+
+### Test 1: Client Registration (Success)
+POST {{baseUrl}}/clients/register
+Content-Type: {{contentType}}
+
+{
+  "name": "John Doe",
+  "email": "john.doe@example.com",
+  "password": "SecurePass123!",
+  "phone": "+1234567890",
+  "immigrationType": "skilled-worker"
+}
+
+###
+
+### Test 2: Client Registration (Duplicate Email)
+POST {{baseUrl}}/clients/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Jane Doe",
+  "email": "john.doe@example.com",
+  "password": "AnotherPass123!",
+  "phone": "+1987654321",
+  "immigrationType": "family-sponsorship"
+}
+
+###
+
+### Test 3: Client Registration (Weak Password)
+POST {{baseUrl}}/clients/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Test User",
+  "email": "test@example.com",
+  "password": "123",
+  "phone": "+1122334455"
+}
+
+###
+
+### Test 4: Client Registration (Invalid Email)
+POST {{baseUrl}}/clients/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Test User",
+  "email": "invalid-email",
+  "password": "SecurePass123!",
+  "phone": "+1122334455"
+}
+
+###
+
+### Test 5: Client Registration (Missing Required Fields)
+POST {{baseUrl}}/clients/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Test User",
+  "email": "missing@example.com"
+}
+
+###
+
+### Test 6: Client Login (Valid Credentials)
+# IMPORTANT: First register using Test 1, then use this login test
+# Make sure the email matches exactly what you used in registration
+POST {{baseUrl}}/clients/login
+Content-Type: {{contentType}}
+
+{
+  "email": "john.doe@example.com",
+  "password": "SecurePass123!"
+}
+
+###
+
+### Test 7: Client Login (Invalid Email)
+POST {{baseUrl}}/clients/login
+Content-Type: {{contentType}}
+
+{
+  "email": "nonexistent@example.com",
+  "password": "SecurePass123!"
+}
+
+###
+
+### Test 8: Client Login (Invalid Password)
+POST {{baseUrl}}/clients/login
+Content-Type: {{contentType}}
+
+{
+  "email": "john.doe@example.com",
+  "password": "WrongPassword!"
+}
+
+###
+
+### Test 9: Client Login (Missing Email)
+POST {{baseUrl}}/clients/login
+Content-Type: {{contentType}}
+
+{
+  "password": "SecurePass123!"
+}
+
+###
+
+### Test 10: Client Login (Missing Password)
+POST {{baseUrl}}/clients/login
+Content-Type: {{contentType}}
+
+{
+  "email": "john.doe@example.com"
+}
+
+###
+
+### Test 11: Get Client Profile (With Token)
+# First login, copy the access_token, and paste it in the @clientToken variable above
+GET {{baseUrl}}/clients/profile
+Authorization: Bearer {{clientToken}}
+
+###
+
+### Test 12: Get Client Profile (No Token)
+GET {{baseUrl}}/clients/profile
+
+###
+
+### Test 13: Get Client Profile (Invalid Token)
+GET {{baseUrl}}/clients/profile
+Authorization: Bearer invalid.jwt.token
+
+###
+
+### Test 14: Get Client Profile (Expired Token)
+GET {{baseUrl}}/clients/profile
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE1MTYyMzkwMjJ9.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+
+###
+
+### Test 15: Register Client with Family Sponsorship
+POST {{baseUrl}}/clients/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Maria Garcia",
+  "email": "maria.garcia@example.com",
+  "password": "FamilyPass123!",
+  "phone": "+1555666777",
+  "immigrationType": "family-sponsorship"
+}
+
+###
+
+### Test 16: Register Client with Student Visa
+POST {{baseUrl}}/clients/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Chen Wei",
+  "email": "chen.wei@example.com",
+  "password": "StudentPass123!",
+  "phone": "+1666777888",
+  "immigrationType": "student"
+}
+
+###
+
+### Test 17: Register Client with Business Immigration
+POST {{baseUrl}}/clients/register
+Content-Type: {{contentType}}
+
+{
+  "name": "David Smith",
+  "email": "david.smith@example.com",
+  "password": "BusinessPass123!",
+  "phone": "+1777888999",
+  "immigrationType": "business"
+}
+
+###
+
+### Test 18: Register Client with Refugee Status
+POST {{baseUrl}}/clients/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Ahmed Ali",
+  "email": "ahmed.ali@example.com",
+  "password": "RefugeePass123!",
+  "phone": "+1888999000",
+  "immigrationType": "refugee"
+}
+
+###
+
+### Test 19: Register Client (No Immigration Type)
+POST {{baseUrl}}/clients/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Sarah Johnson",
+  "email": "sarah.johnson@example.com",
+  "password": "NoTypePass123!",
+  "phone": "+1999000111"
+}
+
+###
+
+### Test 20: Login and Get Profile Workflow
+# Step 1: Login
+POST {{baseUrl}}/clients/login
+Content-Type: {{contentType}}
+
+{
+  "email": "john.doe@example.com",
+  "password": "SecurePass123!"
+}
+
+### 
+# Step 2: Copy the token from above response and update @clientToken variable
+# Step 3: Get profile with the token
+
+GET {{baseUrl}}/clients/profile
+Authorization: Bearer {{clientToken}}
+
+###
+
+### Test 21: Register with Special Characters in Name
+POST {{baseUrl}}/clients/register
+Content-Type: {{contentType}}
+
+{
+  "name": "François Müller-O'Brien",
+  "email": "francois@example.com",
+  "password": "SpecialPass123!",
+  "phone": "+1111222333",
+  "immigrationType": "skilled-worker"
+}
+
+###
+
+### Test 22: Register with International Phone Number
+POST {{baseUrl}}/clients/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Yuki Tanaka",
+  "email": "yuki.tanaka@example.com",
+  "password": "JapanPass123!",
+  "phone": "+81-90-1234-5678",
+  "immigrationType": "skilled-worker"
+}
+
+###
+
+### Test 23: Client Login Case Sensitivity Test
+POST {{baseUrl}}/clients/login
+Content-Type: {{contentType}}
+
+{
+  "email": "JOHN.DOE@EXAMPLE.COM",
+  "password": "SecurePass123!"
+}
+
+###
+
+### Test 24: Register Client with Very Long Name
+POST {{baseUrl}}/clients/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Christopher Alexander Montgomery Wellington III",
+  "email": "christopher.wellington@example.com",
+  "password": "LongNamePass123!",
+  "phone": "+1222333444",
+  "immigrationType": "business"
+}
+
+###
+
+### Test 25: Multiple Login Attempts (Same User)
+POST {{baseUrl}}/clients/login
+Content-Type: {{contentType}}
+
+{
+  "email": "john.doe@example.com",
+  "password": "SecurePass123!"
+}
+
+###

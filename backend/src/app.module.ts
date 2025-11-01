@@ -16,10 +16,10 @@ import { PrismaModule } from './prisma/prisma.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'public', 'admin'),
-      serveRoot: '/admin',
-    }),
+    // ServeStaticModule.forRoot({
+    //   rootPath: join(__dirname, '..', 'public', 'admin'),
+    //   serveRoot: '/admin',
+    // }),
     PrismaModule,
     AuthModule,
     ClientsModule,

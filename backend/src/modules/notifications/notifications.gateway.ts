@@ -52,3 +52,6 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     return { event: 'pong', data: 'Connection alive' };
   }
 }
+
+
+// add validation status notification

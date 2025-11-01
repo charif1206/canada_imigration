@@ -1,0 +1,126 @@
+### ========================================
+### Admin Module Tests
+### Canada Immigration Application
+### ========================================
+
+### Variables
+@baseUrl = http://localhost:3000
+@contentType = application/json
+
+# Get admin token from auth.http first
+# Run: POST http://localhost:3000/auth/login
+@adminToken = your_admin_token_here
+
+### ========================================
+### Test 1: Get Dashboard Statistics
+### Requires authentication
+### ========================================
+GET {{baseUrl}}/admin/dashboard
+Authorization: Bearer {{adminToken}}
+
+### Expected Response:
+### {
+###   "totalClients": 10,
+###   "validatedClients": 3,
+###   "pendingClients": 7,
+###   "unreadMessages": 5
+### }
+
+### ========================================
+### Test 2: Get All Messages (Admin View)
+### Includes client information
+### ========================================
+GET {{baseUrl}}/admin/messages
+Authorization: Bearer {{adminToken}}
+
+### Expected: Array of messages with client details
+
+### ========================================
+### Test 3: Get Recent Clients
+### Default limit: 10
+### ========================================
+GET {{baseUrl}}/admin/clients/recent
+Authorization: Bearer {{adminToken}}
+
+### Expected: Array of 10 most recent clients
+
+### ========================================
+### Test 4: Get Recent Clients with Custom Limit
+### ========================================
+GET {{baseUrl}}/admin/clients/recent?limit=5
+Authorization: Bearer {{adminToken}}
+
+### Expected: Array of 5 most recent clients
+
+### ========================================
+### Test 5: Get Pending Validations
+### Clients waiting for admin approval
+### ========================================
+GET {{baseUrl}}/admin/clients/pending
+Authorization: Bearer {{adminToken}}
+
+### Expected: Array of non-validated clients
+
+### ========================================
+### Test 6: Access Dashboard Without Token
+### Should fail with 401
+### ========================================
+GET {{baseUrl}}/admin/dashboard
+
+### Expected: 401 Unauthorized
+
+### ========================================
+### Test 7: Access Dashboard With Invalid Token
+### Should fail with 401
+### ========================================
+GET {{baseUrl}}/admin/dashboard
+Authorization: Bearer invalid_token_xyz123
+
+### Expected: 401 Unauthorized
+
+### ========================================
+### Test 8: Mark Message as Read
+### Replace {messageId} with actual message ID
+### ========================================
+@messageId = replace_with_actual_message_id
+PATCH {{baseUrl}}/admin/messages/{{messageId}}/read
+Authorization: Bearer {{adminToken}}
+
+### Expected: Message marked as read
+
+### ========================================
+### Test 9: Get Dashboard Stats (Check Performance)
+### Run multiple times to check response time
+### ========================================
+GET {{baseUrl}}/admin/dashboard
+Authorization: Bearer {{adminToken}}
+
+### Expected: Response time < 500ms for small dataset
+
+### ========================================
+### Test 10: Get Recent Clients with Large Limit
+### Test pagination needs
+### ========================================
+GET {{baseUrl}}/admin/clients/recent?limit=100
+Authorization: Bearer {{adminToken}}
+
+### Expected: Array of up to 100 clients
+### Note: If database has < 100 clients, returns all
+
+### ========================================
+### Success Criteria:
+### ✅ Test 1: Returns dashboard statistics
+### ✅ Test 2: Returns all messages with client info
+### ✅ Test 3-4: Returns recent clients (different limits)
+### ✅ Test 5: Returns pending validations only
+### ✅ Tests 6-7: Return 401 Unauthorized
+### ✅ Test 8: Message status updated
+### ✅ Test 9: Response time acceptable
+### ✅ Test 10: Large limit handled correctly
+### 
+### Performance Benchmarks:
+### - Dashboard stats: < 500ms
+### - Recent clients (10): < 200ms
+### - All messages: < 1s (depends on count)
+### - Pending validations: < 500ms
+### ========================================
