@@ -51,6 +51,7 @@ export class ClientsController {
   }
 
   @Patch(':id/validate')
+  @UseGuards(JwtAuthGuard)
   async validateClient(
     @Param('id') id: string,
     @Body() validateDto: ValidateClientDto,

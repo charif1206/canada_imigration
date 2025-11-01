@@ -6,7 +6,7 @@
 ### Variables
 @baseUrl = http://localhost:3000
 @contentType = application/json
-@adminToken = {{login.response.body.access_token}}
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwic3ViIjoiMDMxMzYwNDYtMWYzNy00OWViLThmYzYtNzk3M2JjNDgyMTQ1Iiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzYyMDAwNzg3LCJleHAiOjE3NjIwODcxODd9.HNVakok1JffiaJGNy0xBEm6xUaer1aWOmxGhP41UwAA
 
 ### ========================================
 ### Test 1: Admin Login (Default Credentials)

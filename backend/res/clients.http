@@ -8,7 +8,8 @@
 @contentType = application/json
 
 # Get admin token first from auth.http
-@adminToken = your_admin_token_here
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwic3ViIjoiMDMxMzYwNDYtMWYzNy00OWViLThmYzYtNzk3M2JjNDgyMTQ1Iiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzYyMDAwNzg3LCJleHAiOjE3NjIwODcxODd9.HNVakok1JffiaJGNy0xBEm6xUaer1aWOmxGhP41UwAA
+
 
 ### ========================================
 ### Test 1: Create Client - Complete Data
@@ -58,7 +59,7 @@ GET {{baseUrl}}/clients
 ### Test 4: Get Client by ID
 ### Replace {clientId} with actual ID from Test 1 response
 ### ========================================
-@clientId = {{createClient1.response.body.id}}
+@clientId = 78912814-f331-4f3b-84fa-c4f2a4a439f1
 GET {{baseUrl}}/clients/{{clientId}}
 
 ### Expected: Single client with all details

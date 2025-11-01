@@ -32,7 +32,7 @@ export class ClientsService {
     });
 
     if (existingClient) {
-      throw new ConflictException('Email already registered');
+      throw new ConflictException(`Email '${registerDto.email}' is already registered. Please use a different email or try logging in.`);
     }
 
     // Hash password
@@ -87,7 +87,7 @@ export class ClientsService {
 
       if (!client || client.length === 0) {
         this.logger.warn(`Login failed: No client found with email ${loginDto.email}`);
-        throw new UnauthorizedException('Invalid credentials');
+        throw new UnauthorizedException(`No account found with email '${loginDto.email}'. Please check your email or register first.`);
       }
 
       const clientData = client[0];
@@ -99,7 +99,7 @@ export class ClientsService {
 
       if (!isPasswordValid) {
         this.logger.warn(`Login failed: Invalid password for email ${loginDto.email}`);
-        throw new UnauthorizedException('Invalid credentials');
+        throw new UnauthorizedException('Password is incorrect. Please check your password and try again.');
       }
 
       this.logger.debug(`Password verified successfully for client: ${clientData.id}`);
@@ -122,12 +122,16 @@ export class ClientsService {
         client: responseData,
       };
     } catch (error) {
-      this.logger.error(`Login error for ${loginDto.email}: ${error.message}`, error.stack);
+      if (error instanceof Error) {
+        this.logger.error(`Login error for ${loginDto.email}: ${error.message}`, error.stack);
+      }
       throw error;
     }
   }
 
   async getClientProfile(clientId: string) {
+    console.log('clientId:', clientId);
+
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
       include: {
@@ -139,7 +143,7 @@ export class ClientsService {
     });
 
     if (!client) {
-      throw new NotFoundException('Client not found');
+      throw new NotFoundException(`Client profile not found. Your session may have expired or the account was deleted. Please log in again.`);
     }
 
     // Remove password from response
@@ -149,6 +153,15 @@ export class ClientsService {
 
   async createClient(createClientDto: CreateClientDto) {
     this.logger.log(`Creating new client: ${createClientDto.email}`);
+    
+    // Check if email already exists
+    const existingClient = await this.prisma.client.findUnique({
+      where: { email: createClientDto.email },
+    });
+
+    if (existingClient) {
+      throw new ConflictException(`Email '${createClientDto.email}' is already registered. Please use a different email or try logging in.`);
+    }
     
     const client = await this.prisma.client.create({
       data: createClientDto,
@@ -188,7 +201,7 @@ export class ClientsService {
     });
 
     if (!client) {
-      throw new NotFoundException(`Client with ID ${id} not found`);
+      throw new NotFoundException(`Client with ID '${id}' not found. The client may have been deleted or the ID is incorrect.`);
     }
 
     return client;

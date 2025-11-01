@@ -56,13 +56,13 @@ export class AuthService implements OnModuleInit {
     });
 
     if (!admin) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException(`Admin account with username '${username}' does not exist. Please check your username or contact support.`);
     }
 
     const isPasswordValid = await bcrypt.compare(password, admin.password);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Password is incorrect. Please check your password and try again.');
     }
 
     const { password: _, ...result } = admin;
@@ -95,13 +95,13 @@ export class AuthService implements OnModuleInit {
     });
 
     if (!admin) {
-      throw new UnauthorizedException('Admin not found');
+      throw new UnauthorizedException('Admin account not found. Your session may have expired. Please log in again.');
     }
 
     const isPasswordValid = await bcrypt.compare(oldPassword, admin.password);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Current password is incorrect');
+      throw new UnauthorizedException('Current password is incorrect. Please enter your correct current password to change it.');
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -137,7 +137,7 @@ export class AuthService implements OnModuleInit {
     });
 
     if (existingAdmin) {
-      throw new UnauthorizedException('Username already exists');
+      throw new UnauthorizedException(`Username '${registerDto.username}' is already taken. Please choose a different username.`);
     }
 
     // Check if email already exists
@@ -146,7 +146,7 @@ export class AuthService implements OnModuleInit {
     });
 
     if (existingEmail) {
-      throw new UnauthorizedException('Email already exists');
+      throw new UnauthorizedException(`Email '${registerDto.email}' is already registered. Please use a different email or try logging in.`);
     }
 
     // Hash password
