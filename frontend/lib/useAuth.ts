@@ -1,52 +1,46 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { authUtils, Client } from './auth';
 
 export function useAuth() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [client, setClient] = useState<Client | null>(null);
   const router = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
-    const checkAuth = () => {
-      const clientId = authUtils.getClientId();
-      const clientData = authUtils.getClient();
+  // Use useMemo to compute auth state (no useEffect needed)
+  const authState = useMemo(() => {
+    const clientId = authUtils.getClientId();
+    const clientData = authUtils.getClient();
 
-      if (clientId && clientData) {
-        setIsAuthenticated(true);
-        setClient(clientData);
-      } else {
-        setIsAuthenticated(false);
-        setClient(null);
-        
-        // Redirect to login if not on public pages
-        const publicPages = ['/login', '/register', '/', '/services', '/contact', '/partners'];
-        if (!publicPages.includes(pathname)) {
-          router.push('/login');
-        }
+    if (clientId && clientData) {
+      return {
+        isAuthenticated: true,
+        isLoading: false,
+        client: clientData,
+      };
+    } else {
+      // Redirect to login if not on public pages
+      const publicPages = ['/login', '/register', '/', '/services', '/contact', '/partners'];
+      if (typeof window !== 'undefined' && !publicPages.includes(pathname)) {
+        router.push('/login');
       }
       
-      setIsLoading(false);
-    };
-
-    checkAuth();
+      return {
+        isAuthenticated: false,
+        isLoading: false,
+        client: null,
+      };
+    }
   }, [pathname, router]);
 
   const logout = () => {
     authUtils.clearAuth();
-    setIsAuthenticated(false);
-    setClient(null);
     router.push('/');
   };
 
   return {
-    isAuthenticated,
-    isLoading,
-    client,
+    ...authState,
     logout,
   };
 }

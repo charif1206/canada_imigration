@@ -1,6 +1,5 @@
 import { Controller, Post, Body, Get, Param, Patch, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
 import { ClientsService } from './clients.service';
-import { CreateClientDto } from './dto/create-client.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { ValidateClientDto } from './dto/validate-client.dto';
 import { ClientRegisterDto } from './dto/client-register.dto';
@@ -27,12 +26,6 @@ export class ClientsController {
   @UseGuards(JwtAuthGuard)
   async getProfile(@Request() req) {
     return this.clientsService.getClientProfile(req.user.sub);
-  }
-
-  @Post()
-  @HttpCode(HttpStatus.CREATED)
-  async createClient(@Body() createClientDto: CreateClientDto) {
-    return this.clientsService.createClient(createClientDto);
   }
 
   @Get()

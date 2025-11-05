@@ -3,20 +3,20 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { authUtils } from '../../lib/auth';
-
-const API_URL = 'http://localhost:3000';
+import { useRegister } from '../../lib/hooks/useAuth';
+import { toast } from 'react-toastify';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
+
+  // Use React Query mutation for registration
+  const registerMutation = useRegister();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -27,52 +27,37 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
 
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      toast.error('Passwords do not match');
       return;
     }
 
     // Validate password length
     if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      toast.error('Password must be at least 6 characters long');
       return;
     }
 
-    setLoading(true);
-
-    try {
-      const response = await fetch(`${API_URL}/clients`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+    // Submit using React Query mutation
+    registerMutation.mutate(
+      {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      },
+      {
+        onSuccess: () => {
+          toast.success('🎉 Registration successful! Welcome aboard!');
+          // Router navigation is handled in the useRegister hook
         },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.email, // Use email as phone placeholder since it's required
-          password: formData.password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
+        onError: (error: any) => {
+          const errorMessage = error?.message || 'Registration failed. Please try again.';
+          toast.error(errorMessage);
+        },
       }
-
-      // Store client data
-      authUtils.setAuth(data.id, data);
-
-      // Redirect to dashboard/status page
-      router.push('/status');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    );
   };
 
   return (
@@ -86,12 +71,6 @@ export default function RegisterPage() {
             Start your journey to Canada
           </p>
         </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-            <p className="text-sm">{error}</p>
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Full Name */}
@@ -164,10 +143,20 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={registerMutation.isPending}
             className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-blue-300 disabled:cursor-not-allowed"
           >
-            {loading ? 'Registering...' : 'Register'}
+            {registerMutation.isPending ? (
+              <span className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Registering...
+              </span>
+            ) : (
+              'Register'
+            )}
           </button>
         </form>
 

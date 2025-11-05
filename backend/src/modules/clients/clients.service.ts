@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException, Logger, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateClientDto } from './dto/create-client.dto';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { ValidateClientDto } from './dto/validate-client.dto';
 import { ClientRegisterDto } from './dto/client-register.dto';
@@ -44,8 +43,7 @@ export class ClientsService {
         name: registerDto.name,
         email: registerDto.email,
         password: hashedPassword,
-        phone: registerDto.phone,
-        immigrationType: registerDto.immigrationType,
+ // Use phone if provided, otherwise use email as placeholder
       } as any,
     });
 
@@ -149,33 +147,6 @@ export class ClientsService {
     // Remove password from response
     const { password, ...clientData } = client as any;
     return clientData;
-  }
-
-  async createClient(createClientDto: CreateClientDto) {
-    this.logger.log(`Creating new client: ${createClientDto.email}`);
-    
-    // Check if email already exists
-    const existingClient = await this.prisma.client.findUnique({
-      where: { email: createClientDto.email },
-    });
-
-    if (existingClient) {
-      throw new ConflictException(`Email '${createClientDto.email}' is already registered. Please use a different email or try logging in.`);
-    }
-    
-    const client = await this.prisma.client.create({
-      data: createClientDto,
-    });
-
-    // Send notifications
-    await this.whatsappService.sendMessageToAdmin(
-      `🆕 New client registered!\n\nName: ${client.name}\nEmail: ${client.email}\nPhone: ${client.phone}\nType: ${client.immigrationType || 'Not specified'}`
-    );
-    
-    await this.sheetsService.sendDataToSheet(client);
-    this.notificationsService.notifyClientCreation(client.id);
-
-    return client;
   }
 
   async getAllClients() {

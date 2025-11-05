@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsOptional } from 'class-validator';
 
 export class ClientRegisterDto {
   @IsNotEmpty({ message: 'Name is required. Please provide your full name.' })
@@ -14,10 +14,5 @@ export class ClientRegisterDto {
   @MinLength(6, { message: 'Password must be at least 6 characters long. Please choose a stronger password.' })
   password: string;
 
-  @IsNotEmpty({ message: 'Phone number is required. Please provide your phone number.' })
-  @IsString({ message: 'Phone number must be a valid text string.' })
-  phone: string;
 
-  @IsString({ message: 'Immigration type must be a valid text string.' })
-  immigrationType?: string;
 }

@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useSubmitEquivalenceForm, useSubmitResidenceForm } from '../../lib/hooks/useForms';
+import { toast } from 'react-toastify';
 
 const InputField: React.FC<{ label: string; type: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; required?: boolean; placeholder?: string; }> = ({ label, type, name, value, onChange, required = true, placeholder }) => (
     <div>
@@ -54,11 +56,48 @@ const FormulaireEquivalence: React.FC<{onSubmitSuccess: () => void}> = ({onSubmi
         titreLicence: '', titreMaster: '', anneeDebut: '', anneeObtentionLicence: '',
         anneeObtentionMaster: '', email: '', telephone: ''
     });
+    const [file, setFile] = useState<File | null>(null);
+    
+    const submitEquivalenceMutation = useSubmitEquivalenceForm();
+    
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setFormData({ ...formData, [e.target.name]: e.target.value });
+    
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setFile(e.target.files[0]);
+        }
+    };
     
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmitSuccess();
+        
+        // Create FormData for multipart upload
+        const submitData = new FormData();
+        Object.entries(formData).forEach(([key, value]) => {
+            submitData.append(key, value);
+        });
+        if (file) {
+            submitData.append('portfolio', file);
+        }
+        
+        // Submit using React Query mutation
+        submitEquivalenceMutation.mutate(submitData, {
+            onSuccess: () => {
+                toast.success('✅ Formulaire d\'équivalence soumis avec succès! Un conseiller vous contactera dans les 24 heures.');
+                onSubmitSuccess();
+                // Reset form
+                setFormData({
+                    prenom: '', nom: '', adresse: '', codePostal: '', niveau: '', universite: '',
+                    titreLicence: '', titreMaster: '', anneeDebut: '', anneeObtentionLicence: '',
+                    anneeObtentionMaster: '', email: '', telephone: ''
+                });
+                setFile(null);
+            },
+            onError: (error: any) => {
+                const errorMessage = error?.message || 'Échec de la soumission du formulaire. Veuillez réessayer.';
+                toast.error(errorMessage);
+            },
+        });
     }
 
     return (
@@ -77,33 +116,115 @@ const FormulaireEquivalence: React.FC<{onSubmitSuccess: () => void}> = ({onSubmi
                 <InputField label="Année d'obtention du master" type="text" name="anneeObtentionMaster" value={formData.anneeObtentionMaster} onChange={handleChange} required={false} />
                 <InputField label="Email" type="email" name="email" value={formData.email} onChange={handleChange} />
                 <InputField label="Numéro de téléphone" type="tel" name="telephone" value={formData.telephone} onChange={handleChange} />
+                <div className="md:col-span-2">
+                    <label htmlFor="portfolio" className="block text-sm font-medium text-gray-700">Portfolio (PDF, optional)</label>
+                    <input type="file" name="portfolio" id="portfolio" accept=".pdf" onChange={handleFileChange} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"/>
+                    {file && <p className="mt-2 text-sm text-gray-600">Selected: {file.name}</p>}
+                </div>
             </div>
-            <button type="submit" className="mt-6 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">Soumettre</button>
+            <button 
+                type="submit" 
+                disabled={submitEquivalenceMutation.isPending}
+                className="mt-6 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 disabled:bg-red-300 disabled:cursor-not-allowed"
+            >
+                {submitEquivalenceMutation.isPending ? (
+                    <span className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Envoi en cours...
+                    </span>
+                ) : (
+                    'Soumettre'
+                )}
+            </button>
         </form>
     );
 };
 
 const FormulaireResidence: React.FC<{onSubmitSuccess: () => void}> = ({onSubmitSuccess}) => {
+    const [formData, setFormData] = useState({
+        nomComplet: '', dateNaissance: '', paysResidence: '', programme: '', 
+        numeroDossier: '', etape: ''
+    });
+    const [file, setFile] = useState<File | null>(null);
+    
+    const submitResidenceMutation = useSubmitResidenceForm();
+    
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+    
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setFile(e.target.files[0]);
+        }
+    };
+    
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmitSuccess();
+        
+        // Create FormData for multipart upload
+        const submitData = new FormData();
+        Object.entries(formData).forEach(([key, value]) => {
+            submitData.append(key, value);
+        });
+        if (file) {
+            submitData.append('fileUpload', file);
+        }
+        
+        // Submit using React Query mutation
+        submitResidenceMutation.mutate(submitData, {
+            onSuccess: () => {
+                toast.success('✅ Formulaire de résidence soumis avec succès! Un conseiller vous contactera dans les 24 heures.');
+                onSubmitSuccess();
+                // Reset form
+                setFormData({
+                    nomComplet: '', dateNaissance: '', paysResidence: '', programme: '', 
+                    numeroDossier: '', etape: ''
+                });
+                setFile(null);
+            },
+            onError: (error: any) => {
+                const errorMessage = error?.message || 'Échec de la soumission du formulaire. Veuillez réessayer.';
+                toast.error(errorMessage);
+            },
+        });
     }
     
     return (
         <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <InputField label="Nom / Prénom" type="text" name="nomComplet" value="" onChange={() => {}} />
-                <InputField label="Date de naissance" type="date" name="dateNaissance" value="" onChange={() => {}} />
-                <InputField label="Pays de résidence" type="text" name="paysResidence" value="" onChange={() => {}} />
-                <SelectField label="Programme d'immigration" name="programme" value="" onChange={() => {}} options={[{value:'Quebec', label:'Québec'}, {value:'Entree Express', label:'Entrée Express'}]} placeholder="Sélectionnez..." />
-                <InputField label="Numéro de dossier" type="text" name="numeroDossier" value="" onChange={() => {}} />
-                <SelectField label="Étape actuelle" name="etape" value="" onChange={() => {}} options={['DF', 'ARDF', 'IVM', 'VMF', 'GU', 'PPR'].map(o => ({value: o, label: o}))} placeholder="Sélectionnez..." />
+                <InputField label="Nom / Prénom" type="text" name="nomComplet" value={formData.nomComplet} onChange={handleChange} />
+                <InputField label="Date de naissance" type="date" name="dateNaissance" value={formData.dateNaissance} onChange={handleChange} />
+                <InputField label="Pays de résidence" type="text" name="paysResidence" value={formData.paysResidence} onChange={handleChange} />
+                <SelectField label="Programme d'immigration" name="programme" value={formData.programme} onChange={handleChange} options={[{value:'Quebec', label:'Québec'}, {value:'Entree Express', label:'Entrée Express'}]} placeholder="Sélectionnez..." />
+                <InputField label="Numéro de dossier" type="text" name="numeroDossier" value={formData.numeroDossier} onChange={handleChange} />
+                <SelectField label="Étape actuelle" name="etape" value={formData.etape} onChange={handleChange} options={['DF', 'ARDF', 'IVM', 'VMF', 'GU', 'PPR'].map(o => ({value: o, label: o}))} placeholder="Sélectionnez..." />
                 <div className="md:col-span-2">
                     <label htmlFor="fileUpload" className="block text-sm font-medium text-gray-700">Pièce jointe (PDF)</label>
-                    <input type="file" name="fileUpload" id="fileUpload" accept=".pdf" className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"/>
+                    <input type="file" name="fileUpload" id="fileUpload" accept=".pdf" onChange={handleFileChange} className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"/>
+                    {file && <p className="mt-2 text-sm text-gray-600">Selected: {file.name}</p>}
                 </div>
             </div>
-            <button type="submit" className="mt-6 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">Soumettre</button>
+            <button 
+                type="submit"
+                disabled={submitResidenceMutation.isPending}
+                className="mt-6 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 disabled:bg-red-300 disabled:cursor-not-allowed"
+            >
+                {submitResidenceMutation.isPending ? (
+                    <span className="flex items-center justify-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Envoi en cours...
+                    </span>
+                ) : (
+                    'Soumettre'
+                )}
+            </button>
         </form>
     );
 };

@@ -1,277 +1,124 @@
-'use client';
+﻿'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useAuth } from '../../lib/useAuth';
-
-const API_URL = 'http://localhost:3000';
-
-interface Message {
-  id: string;
-  subject: string;
-  content: string;
-  isRead: boolean;
-  createdAt: string;
-}
+import React from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/hooks/useAuth';
+// TODO: Implement validation status feature later
+// import { useValidationStatus } from '@/lib/hooks/useValidation';
+// import { useSocket } from '@/lib/contexts/SocketContext';
+// import { useNotificationStore } from '@/lib/stores/notificationStore';
+import { useLogout } from '@/lib/hooks/useAuth';
 
 export default function StatusPage() {
-  const { isAuthenticated, isLoading, client, logout } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [messagesLoading, setMessagesLoading] = useState(true);
-  const [showMessageForm, setShowMessageForm] = useState(false);
-  const [messageForm, setMessageForm] = useState({
-    subject: '',
-    content: '',
+  const router = useRouter();
+  const { user, isAuthenticated } = useAuth();
+  
+  console.log('📊 Status Page - Auth check:', { 
+    isAuthenticated, 
+    hasUser: !!user,
+    userName: user?.name,
+    tokenInStorage: typeof window !== 'undefined' ? !!localStorage.getItem('client_token') : 'N/A'
   });
-  const [sendingMessage, setSendingMessage] = useState(false);
-
-  useEffect(() => {
-    if (!isAuthenticated || !client) return;
-
-    const loadMessages = async () => {
-      try {
-        const response = await fetch(`${API_URL}/clients/${client.id}/messages`);
-        const data = await response.json();
-        setMessages(data);
-      } catch (error) {
-        console.error('Error loading messages:', error);
-      } finally {
-        setMessagesLoading(false);
-      }
-    };
-
-    void loadMessages();
-  }, [isAuthenticated, client]);
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!client) return;
-
-    setSendingMessage(true);
-    try {
-      const response = await fetch(`${API_URL}/clients/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          clientId: client.id,
-          subject: messageForm.subject,
-          content: messageForm.content,
-        }),
-      });
-
-      if (response.ok) {
-        setMessageForm({ subject: '', content: '' });
-        setShowMessageForm(false);
-        // Reload messages
-        const messagesResponse = await fetch(`${API_URL}/clients/${client.id}/messages`);
-        const data = await messagesResponse.json();
-        setMessages(data);
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      alert('Failed to send message');
-    } finally {
-      setSendingMessage(false);
-    }
+  
+  // TODO: Uncomment when validation/notification features are implemented
+  // const { isConnected } = useSocket();
+  // const { notifications, unreadCount, markAsRead } = useNotificationStore();
+  // const { data: validationData, isLoading } = useValidationStatus(user?.id);
+  
+  const logoutMutation = useLogout();
+  
+  // FAKE DATA - Replace with real data later
+  const isLoading = false;
+  const validationData = {
+    status: 'pending' as const,
+    isValidated: false,
+    validatedAt: null,
+    validatedBy: null,
+    notes: null,
   };
+
+  // No useEffect needed - redirect handled in useAuth hook or use router.replace directly
+  if (!isAuthenticated) {
+    if (typeof window !== 'undefined') {
+      router.replace('/login');
+    }
+    return null;
+  }
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
     );
   }
 
-  if (!isAuthenticated || !client) {
-    return null;
-  }
+  const getStatusColor = (status: string) => {
+    if (status === 'approved') return 'bg-green-100 text-green-800';
+    if (status === 'rejected') return 'bg-red-100 text-red-800';
+    return 'bg-yellow-100 text-yellow-800';
+  };
 
-  return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <header className="bg-linear-to-r from-blue-600 to-blue-800 text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">🍁 Application Status</h1>
-              <p className="text-blue-100">Track your immigration application</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm text-blue-100">Welcome,</p>
-                <p className="font-semibold">{client.name}</p>
-              </div>
-              <button
-                onClick={logout}
-                className="bg-white text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors font-medium"
-              >
-                Logout
-              </button>
+  const getStatusIcon = (status: string) => {
+    if (status === 'approved') return '✅';
+    if (status === 'rejected') return '❌';
+    return '⏳';
+  };
+
+return (
+  <div className="min-h-screen bg-slate-50 py-20">
+    <div className="container mx-auto px-4">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold text-blue-900 mb-4">Application Status</h1>
+        <button onClick={() => logoutMutation.mutate()} className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg">Logout</button>
+      </div>
+      
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg p-8">
+          <h2 className="text-2xl font-bold mb-4">Welcome, {user?.name}!</h2>
+          
+          {/* TODO: Replace with real validation data when API is ready */}
+          <div className="text-center py-8">
+            <div className="text-7xl mb-4">{getStatusIcon(validationData.status)}</div>
+            <div className={`inline-block px-6 py-3 rounded-full text-xl font-bold ${getStatusColor(validationData.status)}`}>
+              {validationData.status.toUpperCase()}
             </div>
           </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Client Information Card */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Your Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-gray-500">Client ID</p>
-              <p className="font-medium text-gray-800">{client.id}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Email</p>
-              <p className="font-medium text-gray-800">{client.email}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Phone</p>
-              <p className="font-medium text-gray-800">{client.phone}</p>
-            </div>
-            {client.immigrationType && (
-              <div>
-                <p className="text-sm text-gray-500">Immigration Type</p>
-                <p className="font-medium text-gray-800 capitalize">
-                  {client.immigrationType.replace('-', ' ')}
-                </p>
+          
+          {/* TODO: Add notifications section when feature is implemented */}
+          {/* <div className="mt-8 border-t pt-6">
+            <h3 className="text-xl font-bold mb-4">Notifications ({unreadCount})</h3>
+            {notifications.length === 0 ? (
+              <p className="text-gray-500">No notifications</p>
+            ) : (
+              <div className="space-y-3">
+                {notifications.map((notif) => (
+                  <div
+                    key={notif.id}
+                    className={`p-4 rounded-lg ${notif.read ? 'bg-gray-50' : 'bg-blue-50'}`}
+                    onClick={() => markAsRead(notif.id)}
+                  >
+                    <h4 className="font-semibold">{notif.title}</h4>
+                    <p className="text-sm text-gray-600">{notif.message}</p>
+                  </div>
+                ))}
               </div>
             )}
-            <div>
-              <p className="text-sm text-gray-500">Application Status</p>
-              <span
-                className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                  client.isValidated
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-yellow-100 text-yellow-800'
-                }`}
-              >
-                {client.isValidated ? '✓ Validated' : '⏳ Pending Review'}
-              </span>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Registration Date</p>
-              <p className="font-medium text-gray-800">
-                {new Date(client.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-          </div>
+          </div> */}
+          
+          {/* TODO: Add socket connection status when implemented */}
+          {/* <div className="mt-6 text-center">
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm ${isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+              <span className={`w-2 h-2 rounded-full mr-2 ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></span>
+              {isConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div> */}
         </div>
-
-        {/* Messages Section */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-gray-800">Messages</h2>
-            <button
-              onClick={() => setShowMessageForm(!showMessageForm)}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {showMessageForm ? 'Cancel' : '+ New Message'}
-            </button>
-          </div>
-
-          {/* New Message Form */}
-          {showMessageForm && (
-            <form onSubmit={handleSendMessage} className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
-                    Subject
-                  </label>
-                  <input
-                    id="subject"
-                    type="text"
-                    required
-                    value={messageForm.subject}
-                    onChange={(e) => setMessageForm({ ...messageForm, subject: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Message subject"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
-                    Message
-                  </label>
-                  <textarea
-                    id="content"
-                    required
-                    rows={4}
-                    value={messageForm.content}
-                    onChange={(e) => setMessageForm({ ...messageForm, content: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Your message..."
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={sendingMessage}
-                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300"
-                >
-                  {sendingMessage ? 'Sending...' : 'Send Message'}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Messages List */}
-          {messagesLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>No messages yet</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`p-4 border rounded-lg ${
-                    message.isRead ? 'bg-white' : 'bg-blue-50 border-blue-200'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold text-gray-800">{message.subject}</h3>
-                    <span className="text-xs text-gray-500">
-                      {new Date(message.createdAt).toLocaleString()}
-                    </span>
-                  </div>
-                  <p className="text-gray-600">{message.content}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Quick Links */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link
-            href="/"
-            className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow text-center"
-          >
-            <p className="font-medium text-gray-800">🏠 Home</p>
-          </Link>
-          <Link
-            href="/services"
-            className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow text-center"
-          >
-            <p className="font-medium text-gray-800">📋 Services</p>
-          </Link>
-          <Link
-            href="/contact"
-            className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow text-center"
-          >
-            <p className="font-medium text-gray-800">📧 Contact</p>
-          </Link>
-        </div>
-      </main>
+      </div>
     </div>
-  );
+  </div>
+);
 }
