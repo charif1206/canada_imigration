@@ -1,15 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useLogin } from '../../lib/hooks/useAuth';
+import { useAuth } from '@/lib/useAuth';
 import { toast } from 'react-toastify';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/profile');
+    }
+  }, [isAuthenticated, router]);
 
   // Use React Query mutation for login
   const loginMutation = useLogin();
@@ -35,8 +46,8 @@ export default function LoginPage() {
           toast.success('🎉 Login successful! Welcome back!');
           // Router navigation is handled in the useLogin hook
         },
-        onError: (error: any) => {
-          const errorMessage = error?.message || 'Login failed. Please try again.';
+        onError: (error: unknown) => {
+          const errorMessage = error instanceof Error ? error.message : 'Login failed. Please try again.';
           toast.error(errorMessage);
         },
       }

@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import { loginClient, registerClient } from '../api/clients.api';
 import { useAuthStore } from '../stores/authStore';
-import type { ClientLoginPayload, ClientRegisterPayload, Client } from '../types/client.types';
+import type { ClientLoginPayload, ClientRegisterPayload } from '../types/client.types';
 
 // ============================================================================
 // AUTHENTICATION HOOKS
@@ -49,18 +49,11 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: (credentials: ClientLoginPayload) => loginClient(credentials),
     onSuccess: (data) => {
-      console.log('✅ Login successful, token received:', data.access_token ? 'YES' : 'NO');
+      console.log('✅ Login successful, storing user data in Zustand');
       
-      // Store JWT token
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('client_token', data.access_token);
-        console.log('✅ Token stored in localStorage');
-        console.log('✅ Token value:', localStorage.getItem('client_token'));
-      }
-      
-      // Update Zustand store (cast Client to User for now)
-      setAuthState(data.client as any, data.access_token);
-      console.log('✅ Auth state updated in Zustand');
+      // Update Zustand store (token is auto-persisted by Zustand middleware)
+      setAuthState(data.client, data.access_token);
+      console.log('✅ Auth state updated and persisted by Zustand');
       
       // Show success toast
       toast.success(`🎉 Welcome back, ${data.client.name}!`);
@@ -69,8 +62,8 @@ export const useLogin = () => {
       console.log('✅ Redirecting to /status');
       router.push('/status');
     },
-    onError: (error: any) => {
-      const errorMessage = error?.message || 'Login failed. Please check your credentials.';
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : 'Login failed. Please check your credentials.';
       toast.error(`❌ ${errorMessage}`);
       console.error('Login error:', error);
     },
@@ -105,13 +98,11 @@ export const useRegister = () => {
   return useMutation({
     mutationFn: (registerData: ClientRegisterPayload) => registerClient(registerData),
     onSuccess: (data) => {
-      // Store JWT token
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('client_token', data.access_token);
-      }
+      console.log('✅ Registration successful, storing user data in Zustand');
       
-      // Update Zustand store (cast Client to User for now)
-      setAuthState(data.client as any, data.access_token);
+      // Update Zustand store (token is auto-persisted by Zustand middleware)
+      setAuthState(data.client, data.access_token);
+      console.log('✅ Auth state updated and persisted by Zustand');
       
       // Show success toast
       toast.success(`🎉 Welcome to Canada Immigration Services, ${data.client.name}!`);
@@ -119,8 +110,8 @@ export const useRegister = () => {
       // Redirect to status page
       router.push('/status');
     },
-    onError: (error: any) => {
-      const errorMessage = error?.message || 'Registration failed. Please try again.';
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.';
       toast.error(`❌ ${errorMessage}`);
       console.error('Registration error:', error);
     },
@@ -155,13 +146,9 @@ export const useLogout = () => {
       return Promise.resolve();
     },
     onSuccess: () => {
-      // Clear JWT token
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('client_token');
-      }
-      
-      // Clear Zustand auth state
+      // Clear Zustand auth state (automatically clears persisted storage)
       clearAuthState();
+      console.log('✅ Auth state cleared from Zustand and localStorage');
       
       // Clear React Query cache
       queryClient.clear();

@@ -20,7 +20,23 @@ export class JwtExceptionFilter implements ExceptionFilter {
       ? exceptionResponse 
       : exceptionResponse.message;
 
-    // Determine the specific error message based on context
+    // 🔥 FIX: Don't intercept login/register errors - pass them through as-is
+    // These endpoints have custom error messages from AuthService
+    const publicRoutes = ['/auth/login', '/auth/register'];
+    const isPublicRoute = publicRoutes.some(route => request.url.includes(route));
+    
+    if (isPublicRoute) {
+      // Pass through the original error message without modification
+      response.status(HttpStatus.UNAUTHORIZED).json({
+        statusCode: HttpStatus.UNAUTHORIZED,
+        message: originalMessage,
+        timestamp: new Date().toISOString(),
+        path: request.url,
+      });
+      return;
+    }
+
+    // For protected routes, determine JWT-specific error messages
     let message: string;
 
     // Check if Authorization header exists

@@ -1,19 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useRegister } from '../../lib/hooks/useAuth';
+import { useAuth } from '@/lib/useAuth';
 import { toast } from 'react-toastify';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/profile');
+    }
+  }, [isAuthenticated, router]);
 
   // Use React Query mutation for registration
   const registerMutation = useRegister();
@@ -52,8 +61,8 @@ export default function RegisterPage() {
           toast.success('🎉 Registration successful! Welcome aboard!');
           // Router navigation is handled in the useRegister hook
         },
-        onError: (error: any) => {
-          const errorMessage = error?.message || 'Registration failed. Please try again.';
+        onError: (error: unknown) => {
+          const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.';
           toast.error(errorMessage);
         },
       }

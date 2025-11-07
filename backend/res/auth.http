@@ -1,50 +1,136 @@
 ### ========================================
-### Authentication Module Tests
-### Canada Immigration Application
+### 🍁 CANADA IMMIGRATION - AUTH MODULE TESTS
+### ========================================
+### Based on: auth.controller.ts & auth.service.ts
+### Endpoints: POST /login, POST /register, GET /profile, PATCH /change-password
 ### ========================================
 
-### Variables
+### 📌 CONFIGURATION
 @baseUrl = http://localhost:3000
 @contentType = application/json
-@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwic3ViIjoiMDMxMzYwNDYtMWYzNy00OWViLThmYzYtNzk3M2JjNDgyMTQ1Iiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzYyMDAwNzg3LCJleHAiOjE3NjIwODcxODd9.HNVakok1JffiaJGNy0xBEm6xUaer1aWOmxGhP41UwAA
+
+### 🔑 STEP 1: Login first to get your token
+### After running the login request below, copy the access_token 
+### from the response and paste it in the @token variable
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImNocmlmIiwic3ViIjoiOWJjZWZmYzMtM2ZlOC00ZTZmLTljNDgtNTVlZGJiNGM4OGNlIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzYyNDY1MTI5LCJleHAiOjE3NjI1NTE1Mjl9.HViGpmKiBUYbBYIR8jHmTlLRbUwFrZZOUrh8fuXoC8Y
+
 
 ### ========================================
-### Test 1: Admin Login (Default Credentials)
+### ✅ TEST 1: LOGIN - Default Admin Credentials
 ### ========================================
+### Endpoint: POST /auth/login
+### Access: Public (no authentication required)
+### Default credentials created on server startup
 # @name login
 POST {{baseUrl}}/auth/login
 Content-Type: {{contentType}}
 
 {
-  "username": "admin",
-  "password": "admin123"
+  "username": "chrif",
+  "password": "chrif1206"
 }
 
-### Expected Response:
-### {
-###   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-###   "admin": {
-###     "id": "...",
-###     "username": "admin",
-###     "email": "admin@immigration.com",
-###     "role": "admin"
-###   }
-### }
+### ✅ Expected Success Response (200):
+# {
+#   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+#   "admin": {
+#     "id": "uuid-here",
+#     "username": "admin",
+#     "email": "admin@immigration.com",
+#     "role": "admin"
+#   }
+# }
 
+### ❌ Expected Error Response (401):
+# {
+#   "statusCode": 401,
+#   "message": "Admin account with username 'admin' does not exist..."
+# }
+# OR
+# {
+#   "statusCode": 401,
+#   "message": "Password is incorrect. Please check your password and try again."
+# }
+
+
+###
 ### ========================================
-### Test 2: Get Admin Profile (Protected Route)
-### Requires: Run Test 1 first to get token
+### ✅ TEST 2: GET PROFILE - Authenticated Route
 ### ========================================
+### Endpoint: GET /auth/profile
+### Access: Protected (requires Bearer token)
+### Returns: Current admin's profile information
 GET {{baseUrl}}/auth/profile
-Authorization: Bearer {{adminToken}}
+Authorization: Bearer {{token}}
 
-### Expected: Admin profile data
+### ✅ Expected Success Response (200):
+# {
+#   "id": "uuid-here",
+#   "username": "admin",
+#   "email": "admin@immigration.com",
+#   "role": "admin",
+#   "createdAt": "2024-11-06T...",
+#   "updatedAt": "2024-11-06T..."
+# }
 
+### ❌ Expected Error Response (401):
+# {
+#   "statusCode": 401,
+#   "message": "Unauthorized"
+# }
+
+
+###
 ### ========================================
-### Test 3: Change Password
+### ✅ TEST 3: REGISTER NEW ADMIN - Protected Route
 ### ========================================
+### Endpoint: POST /auth/register
+### Access: Protected (requires Bearer token + admin role)
+### Description: Only authenticated admins can create new admins
+POST {{baseUrl}}/auth/register
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+
+{
+  "username": "newadmin",
+  "email": "newadmin@example.com",
+  "password": "SecurePass123!",
+  "role": "admin"
+}
+
+### ✅ Expected Success Response (200):
+# {
+#   "id": "new-uuid",
+#   "username": "newadmin",
+#   "email": "newadmin@example.com",
+#   "role": "admin",
+#   "createdAt": "2024-11-06T...",
+#   "updatedAt": "2024-11-06T..."
+# }
+# Note: Password is NOT returned in response
+
+### ❌ Expected Error Responses:
+# 401 Unauthorized (if not authenticated)
+# 401 if username already exists:
+# {
+#   "message": "Username 'newadmin' is already taken. Please choose a different username."
+# }
+# 401 if email already exists:
+# {
+#   "message": "Email 'newadmin@example.com' is already registered..."
+# }
+
+
+###
+### ========================================
+### ✅ TEST 4: CHANGE PASSWORD - Protected Route
+### ========================================
+### Endpoint: PATCH /auth/change-password
+### Access: Protected (requires Bearer token)
+### Description: Change password for currently authenticated admin
+### ⚠️ WARNING: After changing password, you'll need to login again!
 PATCH {{baseUrl}}/auth/change-password
-Authorization: Bearer {{adminToken}}
+Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
 
 {
@@ -52,75 +138,96 @@ Content-Type: {{contentType}}
   "newPassword": "NewSecurePass123!"
 }
 
-### Expected: { "message": "Password changed successfully" }
-### ⚠️ After this test, login will require new password!
+### ✅ Expected Success Response (200):
+# {
+#   "message": "Password changed successfully"
+# }
 
-### ========================================
-### Test 4: Register New Admin (Protected)
-### Only authenticated admins can create new admins
-### ========================================
-POST {{baseUrl}}/auth/register
-Authorization: Bearer {{adminToken}}
-Content-Type: {{contentType}}
+### ❌ Expected Error Responses:
+# 401 if old password is wrong:
+# {
+#   "message": "Current password is incorrect. Please enter your correct current password..."
+# }
+# 401 if admin not found:
+# {
+#   "message": "Admin account not found. Your session may have expired. Please log in again."
+# }
 
-{
-  "username": "testadmin",
-  "email": "testadmin@example.com",
-  "password": "TestAdmin123!",
-  "role": "admin"
-}
 
-### Expected: New admin created (without password in response)
-
+###
 ### ========================================
-### Test 5: Login Failed - Wrong Password
-### Should return 401 Unauthorized
+### ❌ TEST 5: LOGIN - Wrong Password
 ### ========================================
+### Should return 401 with clear error message
 POST {{baseUrl}}/auth/login
 Content-Type: {{contentType}}
 
 {
   "username": "admin",
-  "password": "wrongpassword"
+  "password": "wrongpassword123"
 }
 
-### Expected: 401 Unauthorized
+### ❌ Expected Error Response (401):
+# {
+#   "statusCode": 401,
+#   "message": "Password is incorrect. Please check your password and try again."
+# }
 
+
+###
 ### ========================================
-### Test 6: Login Failed - Non-existent User
-### Should return 401 Unauthorized
+### ❌ TEST 6: LOGIN - Non-existent Username
 ### ========================================
+### Should return 401 with clear error message
 POST {{baseUrl}}/auth/login
 Content-Type: {{contentType}}
 
 {
-  "username": "nonexistent",
+  "username": "nonexistentuser",
   "password": "anypassword"
 }
 
-### Expected: 401 Unauthorized
+### ❌ Expected Error Response (401):
+# {
+#   "statusCode": 401,
+#   "message": "Admin account with username 'nonexistentuser' does not exist..."
+# }
 
+
+###
 ### ========================================
-### Test 7: Access Protected Route Without Token
+### ❌ TEST 7: ACCESS PROFILE WITHOUT TOKEN
+### ========================================
 ### Should return 401 Unauthorized
-### ========================================
 GET {{baseUrl}}/auth/profile
 
-### Expected: 401 Unauthorized
+### ❌ Expected Error Response (401):
+# {
+#   "statusCode": 401,
+#   "message": "Unauthorized"
+# }
 
+
+###
 ### ========================================
-### Test 8: Access Protected Route With Invalid Token
+### ❌ TEST 8: ACCESS PROFILE WITH INVALID TOKEN
+### ========================================
 ### Should return 401 Unauthorized
-### ========================================
 GET {{baseUrl}}/auth/profile
 Authorization: Bearer invalid_token_12345
 
-### Expected: 401 Unauthorized
+### ❌ Expected Error Response (401):
+# {
+#   "statusCode": 401,
+#   "message": "Unauthorized"
+# }
 
+
+###
 ### ========================================
-### Test 9: Register Admin Without Token
+### ❌ TEST 9: REGISTER WITHOUT AUTHENTICATION
+### ========================================
 ### Should return 401 Unauthorized
-### ========================================
 POST {{baseUrl}}/auth/register
 Content-Type: {{contentType}}
 
@@ -131,48 +238,66 @@ Content-Type: {{contentType}}
   "role": "admin"
 }
 
-### Expected: 401 Unauthorized
+### ❌ Expected Error Response (401):
+# {
+#   "statusCode": 401,
+#   "message": "Unauthorized"
+# }
 
+
+###
 ### ========================================
-### Test 10: Register Duplicate Username
-### Should return error
+### ❌ TEST 10: REGISTER DUPLICATE USERNAME
 ### ========================================
+### Should return error message
 POST {{baseUrl}}/auth/register
-Authorization: Bearer {{adminToken}}
+Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
 
 {
   "username": "admin",
-  "email": "newadmin@example.com",
-  "password": "Test123!",
+  "email": "different@example.com",
+  "password": "SecurePass123!",
   "role": "admin"
 }
 
-### Expected: Error - Username already exists
+### ❌ Expected Error Response (401):
+# {
+#   "statusCode": 401,
+#   "message": "Username 'admin' is already taken. Please choose a different username."
+# }
 
+
+###
 ### ========================================
-### Test 11: Register Duplicate Email
-### Should return error
+### ❌ TEST 11: REGISTER DUPLICATE EMAIL
 ### ========================================
+### Should return error message
 POST {{baseUrl}}/auth/register
-Authorization: Bearer {{adminToken}}
+Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
 
 {
-  "username": "newadmin",
+  "username": "differentuser",
   "email": "admin@immigration.com",
-  "password": "Test123!",
+  "password": "SecurePass123!",
   "role": "admin"
 }
 
-### Expected: Error - Email already exists
+### ❌ Expected Error Response (401):
+# {
+#   "statusCode": 401,
+#   "message": "Email 'admin@immigration.com' is already registered..."
+# }
 
+
+###
 ### ========================================
-### Test 12: Change Password - Wrong Old Password
-### Should return error
+### ❌ TEST 12: CHANGE PASSWORD - Wrong Old Password
 ### ========================================
+### Should return error message
 PATCH {{baseUrl}}/auth/change-password
-Authorization: Bearer {{adminToken}}
+Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
 
 {
@@ -180,14 +305,21 @@ Content-Type: {{contentType}}
   "newPassword": "NewPassword123!"
 }
 
-### Expected: Error - Current password is incorrect
+### ❌ Expected Error Response (401):
+# {
+#   "statusCode": 401,
+#   "message": "Current password is incorrect. Please enter your correct current password..."
+# }
 
+
+###
 ### ========================================
-### CLEANUP: Reset Password Back to Default
-### Run this after Test 3 if you want to restore default
+### 🔄 CLEANUP: RESET PASSWORD TO DEFAULT
 ### ========================================
+### Run this if you changed the password and want to restore it
+### Uncomment the request below and update oldPassword if needed
 # PATCH {{baseUrl}}/auth/change-password
-# Authorization: Bearer {{adminToken}}
+# Authorization: Bearer {{token}}
 # Content-Type: {{contentType}}
 # 
 # {
@@ -195,13 +327,53 @@ Content-Type: {{contentType}}
 #   "newPassword": "admin123"
 # }
 
+
+###
 ### ========================================
-### Success Criteria:
-### ✅ Test 1: Returns 200 with access_token
-### ✅ Test 2: Returns admin profile
-### ✅ Test 3: Password changed successfully
-### ✅ Test 4: New admin created
-### ✅ Tests 5-9: Return 401 Unauthorized
-### ✅ Tests 10-11: Return error messages
-### ✅ Test 12: Returns error
+### 📋 TESTING CHECKLIST
 ### ========================================
+### ✅ Test 1: Login with default credentials → Returns access_token
+### ✅ Test 2: Get profile → Returns admin data
+### ✅ Test 3: Register new admin → Creates admin successfully
+### ✅ Test 4: Change password → Success message
+### ❌ Test 5: Wrong password → 401 with clear message
+### ❌ Test 6: Non-existent user → 401 with clear message
+### ❌ Test 7-9: No/Invalid token → 401 Unauthorized
+### ❌ Test 10-11: Duplicate username/email → Error messages
+### ❌ Test 12: Wrong old password → Error message
+
+
+###
+### ========================================
+### 🎯 AVAILABLE ROLES
+### ========================================
+### - admin (default)
+### - super-admin
+### - moderator
+
+
+###
+### ========================================
+### 📝 NOTES
+### ========================================
+### 1. Default admin is created automatically on server startup
+### 2. Username: admin, Password: admin123
+### 3. Change default password immediately in production!
+### 4. All error messages are user-friendly and descriptive
+### 5. Passwords are hashed with bcrypt (10 rounds)
+### 6. JWT tokens are signed with secret from .env
+### 7. Register endpoint requires admin authentication
+### 8. Password field is never returned in responses
+
+
+###
+### ========================================
+### 🔐 SECURITY FEATURES
+### ========================================
+### ✅ Bcrypt password hashing
+### ✅ JWT authentication
+### ✅ Role-based access control (RBAC)
+### ✅ Password never returned in responses
+### ✅ Clear, user-friendly error messages
+### ✅ Protected registration endpoint
+### ✅ Token-based authorization

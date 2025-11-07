@@ -8,23 +8,19 @@ datasource db {
 }
 
 model Client {
-  id                String    @id @default(uuid())
-  name              String
-  email             String    @unique
-  password          String    @default("$2b$10$defaultpasswordhash")
-  phone             String
-  passportNumber    String?
-  nationality       String?
-  dateOfBirth       DateTime?
-  address           String?
-  immigrationType   String?   // e.g., "Express Entry", "Family Sponsorship", etc.
-  isValidated       Boolean   @default(false)
-  validatedAt       DateTime?
-  validatedBy       String?
-  notes             String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  messages          Message[]
+  id              String    @id @default(uuid())
+  name            String
+  email           String    @unique
+  password        String    @default("$2b$10$defaultpasswordhash")
+  passportNumber  String?
+  nationality     String?
+  isValidated     Boolean   @default(false)
+  validatedAt     DateTime?
+  validatedBy     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  messages        Message[]
+  formSubmissions FormSubmission[]
 }
 
 model Admin {
@@ -47,4 +43,19 @@ model Message {
   createdAt DateTime @default(now())
   
   @@index([clientId])
+}
+
+// Forms submitted by clients (equivalence / residence / others).
+// Uses Json column for flexible data storage, but maintains referential integrity with Client.
+// When a client is deleted, all their form submissions are automatically deleted (cascade).
+model FormSubmission {
+  id        String   @id @default(uuid())
+  clientId  String   // Foreign key to Client
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  type      String   // "EQUIVALENCE" or "RESIDENCE"
+  data      Json     // Stores all form fields (flexible structure)
+  fileUrl   String?  // URL to uploaded file (portfolio, supporting docs, etc)
+  createdAt DateTime @default(now())
+  
+  @@index([clientId])  // Index for fast queries: "find all forms for client X"
 }

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Patch, HttpCode, HttpStatus, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, HttpCode, HttpStatus, UseGuards, Request, Query } from '@nestjs/common';
 import { ClientsService } from './clients.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { ValidateClientDto } from './dto/validate-client.dto';
@@ -29,8 +29,13 @@ export class ClientsController {
   }
 
   @Get()
-  async getAllClients() {
-    return this.clientsService.getAllClients();
+  async getAllClients(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return this.clientsService.getAllClients(pageNum, limitNum);
   }
 
   @Get(':id')

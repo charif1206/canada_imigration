@@ -13,15 +13,11 @@ export interface Client {
   id: string;
   name: string;
   email: string;
-  phone: string;
   passportNumber?: string | null;
   nationality?: string | null;
-  dateOfBirth?: string | null;
-  address?: string | null;
-  immigrationType?: string | null;
-  notes?: string | null;
   isValidated: boolean;
   validatedAt?: string | null;
+  validatedBy?: string | null;
   createdAt: string;
   updatedAt: string;
 }

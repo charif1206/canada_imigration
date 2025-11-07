@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Patch, Query, UseGuards, Request } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -31,7 +31,17 @@ export class AdminController {
   }
 
   @Get('clients/pending')
-  async getPendingValidations() {
-    return this.adminService.getPendingValidations();
+  async getPendingValidations(@Query('limit') limit?: string) {
+    return this.adminService.getPendingValidations(limit ? parseInt(limit) : 10);
+  }
+
+  @Patch('clients/:clientId/validate')
+  async validatePendingClient(
+    @Param('clientId') clientId: string,
+    @Request() req,
+  ) {
+    const adminId = req.user.sub;
+    const adminUsername = req.user.username;
+    return this.adminService.validatePendingClient(clientId, adminId, adminUsername);
   }
 }

@@ -31,7 +31,6 @@ export class AdminService {
             id: true,
             name: true,
             email: true,
-            phone: true,
           },
         },
       },
@@ -48,8 +47,9 @@ export class AdminService {
 
   async getRecentClients(limit: number = 10) {
     return this.prisma.client.findMany({
+      where: { isValidated: true },
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { validatedAt: 'desc' },
       include: {
         messages: {
           take: 1,
@@ -59,10 +59,45 @@ export class AdminService {
     });
   }
 
-  async getPendingValidations() {
+  async getPendingValidations(limit: number = 10) {
     return this.prisma.client.findMany({
       where: { isValidated: false },
+      take: limit,
       orderBy: { createdAt: 'asc' },
     });
+  }
+
+  async validatePendingClient(clientId: string, adminId: string, adminUsername: string) {
+    this.logger.log(`Admin ${adminUsername} (${adminId}) validating client ${clientId}`);
+
+    // Check if client exists and is not already validated
+    const client = await this.prisma.client.findUnique({
+      where: { id: clientId },
+    });
+
+    if (!client) {
+      throw new Error(`Client with ID '${clientId}' not found`);
+    }
+
+    if (client.isValidated) {
+      throw new Error(`Client '${client.name}' is already validated`);
+    }
+
+    // Update client to validated
+    const updatedClient = await this.prisma.client.update({
+      where: { id: clientId },
+      data: {
+        isValidated: true,
+        validatedAt: new Date(),
+        validatedBy: adminUsername,
+      },
+    });
+
+    this.logger.log(`Client ${client.name} successfully validated by ${adminUsername}`);
+
+    return {
+      message: `Client '${client.name}' has been successfully validated`,
+      client: updatedClient,
+    };
   }
 }

@@ -3,6 +3,23 @@ import axios from 'axios';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
+// Function to get token from Zustand store (accessed via localStorage)
+const getAuthToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const authStorage = localStorage.getItem('auth-storage');
+    if (authStorage) {
+      const parsed = JSON.parse(authStorage);
+      return parsed.state?.token || null;
+    }
+  } catch (error) {
+    console.error('Error reading auth token:', error);
+  }
+  
+  return null;
+};
+
 // Create axios instance
 export const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -15,8 +32,8 @@ export const axiosInstance = axios.create({
 // Request interceptor - Add auth token to requests
 axiosInstance.interceptors.request.use(
   (config) => {
-    // Get token from localStorage
-    const token = typeof window !== 'undefined' ? localStorage.getItem('client_token') : null;
+    // Get token from Zustand persisted storage
+    const token = getAuthToken();
     
     console.log('🔐 Axios interceptor - Token check:', token ? 'Token exists' : 'No token');
     
@@ -24,7 +41,7 @@ axiosInstance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
       console.log('🔐 Authorization header added to request:', config.url);
     } else {
-      console.log('⚠️ No token found in localStorage for request:', config.url);
+      console.log('⚠️ No token found in auth storage for request:', config.url);
     }
     
     return config;
@@ -44,9 +61,9 @@ axiosInstance.interceptors.response.use(
       
       switch (status) {
         case 401:
-          // Unauthorized - Clear token and redirect to login
+          // Unauthorized - Clear auth storage and redirect to login
           if (typeof window !== 'undefined') {
-            localStorage.removeItem('client_token');
+            localStorage.removeItem('auth-storage');
             if (!window.location.pathname.includes('/login')) {
               window.location.href = '/login';
             }

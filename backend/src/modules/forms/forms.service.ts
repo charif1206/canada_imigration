@@ -18,6 +18,7 @@ export class FormsService {
   async submitEquivalenceForm(
     data: EquivalenceFormDto,
     file?: any, // Multer file object
+    clientId?: string, // Client ID from JWT
   ) {
     this.logger.log(`Submitting equivalence form for: ${data.email}`);
 
@@ -42,9 +43,16 @@ export class FormsService {
 
     // Save to database if forms table exists
     try {
-      // This assumes you have a forms table in your schema
-      // If not, you can just log and send to sheets/whatsapp
-      this.logger.debug('Form data prepared for storage');
+      // Persist to DB with client relationship
+      const saved = await (this.prisma as any).formSubmission.create({
+        data: {
+          clientId: clientId || null,
+          type: 'EQUIVALENCE',
+          data: formData,
+          fileUrl: formData.portfolioUrl,
+        },
+      });
+      this.logger.log(`Equivalence form persisted (id=${saved.id}, clientId=${clientId})`);
     } catch (error) {
       this.logger.warn('Could not save to database, continuing with notifications');
     }
@@ -79,6 +87,7 @@ export class FormsService {
   async submitResidenceForm(
     data: ResidenceFormDto,
     file?: any, // Multer file object
+    clientId?: string, // Client ID from JWT
   ) {
     this.logger.log(`Submitting residence form for: ${data.nomComplet}`);
 
@@ -112,6 +121,21 @@ export class FormsService {
       this.logger.log('Notification sent via WhatsApp');
     } catch (error) {
       this.logger.error('Failed to send WhatsApp notification:', error);
+    }
+
+    // Persist residence form to DB with client relationship
+    try {
+      const saved = await (this.prisma as any).formSubmission.create({
+        data: {
+          clientId: clientId || null,
+          type: 'RESIDENCE',
+          data: formData,
+          fileUrl: formData.fileUrl,
+        },
+      });
+      this.logger.log(`Residence form persisted (id=${saved.id}, clientId=${clientId})`);
+    } catch (error) {
+      this.logger.warn('Could not save residence form to database, continuing');
     }
 
     return {

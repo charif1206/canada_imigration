@@ -1,54 +1,109 @@
-// lib/hooks/useValidation.ts
-// TODO: Implement validation status feature when backend API is ready
-// This file is currently commented out and not in use
+/**
+ * Validation Status Hook
+ * Fetches and auto-refreshes validation status every 5 minutes
+ */
 
-/*
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axiosInstance from '../axios';
-import { useValidationStore } from '../stores/validationStore';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { toast } from 'react-toastify';
+import { useAuthStore } from '../stores/authStore';
 
-// Types
 interface ValidationStatus {
   clientId: string;
-  status: 'pending' | 'approved' | 'rejected';
+  name: string;
   isValidated: boolean;
   validatedAt: string | null;
   validatedBy: string | null;
-  notes?: string;
 }
 
-// API Functions
-const validationApi = {
-  getValidationStatus: async (clientId: string): Promise<ValidationStatus> => {
-    const { data } = await axiosInstance.get(`/clients/${clientId}/validation-status`);
-    return data;
-  },
+// Helper function to get token from Zustand persisted storage
+const getAuthToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const authStorage = localStorage.getItem('auth-storage');
+    if (authStorage) {
+      const parsed = JSON.parse(authStorage);
+      return parsed.state?.token || null;
+    }
+  } catch (error) {
+    console.error('Error reading auth token:', error);
+  }
+  
+  return null;
 };
 
-// Hooks
-export const useValidationStatus = (clientId: string | undefined) => {
-  const { setValidationStatus, setLoading, setError } = useValidationStore();
-
-  return useQuery({
-    queryKey: ['validation-status', clientId],
-    queryFn: () => validationApi.getValidationStatus(clientId!),
-    enabled: !!clientId,
-    refetchInterval: 10000, // Refetch every 10 seconds
-    onSuccess: (data) => {
-      setValidationStatus(data);
-      setLoading(false);
-    },
-    onError: (error: any) => {
-      setError(error.message || 'Failed to fetch validation status');
-      setLoading(false);
+async function fetchValidationStatus(clientId: string): Promise<ValidationStatus> {
+  const token = getAuthToken();
+  const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients/${clientId}/validation-status`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
     },
   });
-};
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch validation status');
+  }
+
+  return response.json();
+}
+
+export function useValidationStatus() {
+  const user = useAuthStore((state) => state.user);
+  const updateUser = useAuthStore((state) => state.updateUser);
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['validationStatus', user?.id],
+    queryFn: () => fetchValidationStatus(user!.id),
+    enabled: !!user?.id,
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    staleTime: 4 * 60 * 1000, // Consider data stale after 4 minutes
+  });
+
+  // Show notification when validation status changes
+  useEffect(() => {
+    if (data && user && !user.isValidated && data.isValidated) {
+      // User just got validated!
+      toast.success(`🎉 Félicitations! Votre profil a été validé par ${data.validatedBy}`, {
+        position: 'top-center',
+        autoClose: 10000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+
+      // Update user in store
+      updateUser({
+        isValidated: true,
+        validatedAt: data.validatedAt,
+        validatedBy: data.validatedBy,
+      });
+
+      // Play notification sound (optional)
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (Notification.permission === 'granted') {
+          new Notification('Profil Validé! 🎉', {
+            body: `Votre profil a été validé par ${data.validatedBy}`,
+            icon: '/favicon.ico',
+          });
+        }
+      }
+    }
+  }, [data, user, updateUser]);
+
+  return {
+    validationStatus: data,
+    isLoading,
+    error,
+    refetch,
+  };
+}
 
 export const useValidation = () => {
-  const { validationStatus, isLoading, error } = useValidationStore();
+  const { validationStatus, isLoading, error } = useValidationStatus();
   
   return {
     validationStatus,
@@ -56,8 +111,4 @@ export const useValidation = () => {
     error,
   };
 };
-*/
 
-// Temporary placeholder export to prevent import errors
-export const useValidationStatus = () => ({ data: null, isLoading: false, error: null });
-export const useValidation = () => ({ validationStatus: null, isLoading: false, error: null });

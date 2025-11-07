@@ -1,50 +1,90 @@
-export const AUTH_TOKEN_KEY = 'client_token';
-export const AUTH_CLIENT_KEY = 'client_data';
+/**
+ * @deprecated This file is deprecated. Use Zustand store directly via `useAuthStore` instead.
+ * 
+ * Legacy auth utilities - kept for backward compatibility.
+ * All functionality now handled by Zustand store with persist middleware.
+ * Storage key changed from 'client_token' to 'auth-storage' (Zustand persist).
+ */
+
+import { useAuthStore } from './stores/authStore';
+
+// Legacy keys - no longer used directly
+export const AUTH_TOKEN_KEY = 'client_token'; // DEPRECATED: Use 'auth-storage' (Zustand persist)
+export const AUTH_CLIENT_KEY = 'client_data'; // DEPRECATED: Not used
 
 export interface Client {
   id: string;
   name: string;
   email: string;
-  phone: string;
   passportNumber?: string;
   nationality?: string;
-  dateOfBirth?: string;
-  address?: string;
-  immigrationType?: string;
   isValidated: boolean;
+  validatedAt?: string;
+  validatedBy?: string;
   createdAt: string;
+  updatedAt: string;
 }
 
+// Helper to read token from Zustand persisted storage
+const getAuthToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const authStorage = localStorage.getItem('auth-storage');
+    if (authStorage) {
+      const parsed = JSON.parse(authStorage);
+      return parsed.state?.token || null;
+    }
+  } catch (error) {
+    console.error('Error reading auth token:', error);
+  }
+  
+  return null;
+};
+
+// Helper to read user from Zustand persisted storage
+const getAuthUser = (): Client | null => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const authStorage = localStorage.getItem('auth-storage');
+    if (authStorage) {
+      const parsed = JSON.parse(authStorage);
+      return parsed.state?.user || null;
+    }
+  } catch (error) {
+    console.error('Error reading auth user:', error);
+  }
+  
+  return null;
+};
+
+/**
+ * @deprecated Use Zustand store directly: `useAuthStore.getState().token`
+ */
 export const authUtils = {
-  // Get client ID from localStorage
+  // Get token from Zustand storage
   getClientId: (): string | null => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem(AUTH_TOKEN_KEY);
+    return getAuthToken();
   },
 
-  // Get client data from localStorage
+  // Get client data from Zustand storage
   getClient: (): Client | null => {
-    if (typeof window === 'undefined') return null;
-    const client = localStorage.getItem(AUTH_CLIENT_KEY);
-    return client ? JSON.parse(client) : null;
+    return getAuthUser();
   },
 
-  // Set authentication
+  // Set authentication - delegates to Zustand
   setAuth: (clientId: string, client: Client) => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(AUTH_TOKEN_KEY, clientId);
-    localStorage.setItem(AUTH_CLIENT_KEY, JSON.stringify(client));
+    useAuthStore.getState().login(client, clientId);
   },
 
-  // Clear authentication
+  // Clear authentication - delegates to Zustand
   clearAuth: () => {
-    if (typeof window === 'undefined') return;
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    localStorage.removeItem(AUTH_CLIENT_KEY);
+    useAuthStore.getState().logout();
   },
 
   // Check if user is authenticated
   isAuthenticated: (): boolean => {
-    return !!authUtils.getClientId();
+    return !!getAuthToken();
   },
 };

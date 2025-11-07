@@ -6,11 +6,13 @@ interface User {
   id: string;
   name: string;
   email: string;
-  phone: string;
-  status: 'pending' | 'approved' | 'rejected';
+  passportNumber?: string | null;
+  nationality?: string | null;
   isValidated: boolean;
-  immigrationType?: string;
+  validatedAt?: string | null;
+  validatedBy?: string | null;
   createdAt: string;
+  updatedAt: string;
 }
 
 interface AuthState {
@@ -42,38 +44,27 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: !!user,
         }),
 
-      setToken: (token) => {
-        if (token && typeof window !== 'undefined') {
-          localStorage.setItem('client_token', token);
-        } else if (typeof window !== 'undefined') {
-          localStorage.removeItem('client_token');
-        }
-        set({ token });
-      },
+      setToken: (token) =>
+        set({ token, isAuthenticated: !!token }),
 
       login: (user, token) => {
-        console.log('🔐 AuthStore.login() called with:', { user: user?.name, hasToken: !!token });
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('client_token', token);
-          console.log('🔐 Token saved to localStorage in authStore');
-        }
+        console.log('🔐 AuthStore.login() - Saving to Zustand (auto-persisted):', { user: user?.name, hasToken: !!token });
         set({
           user,
           token,
           isAuthenticated: true,
         });
-        console.log('🔐 Zustand state updated');
+        console.log('✅ Zustand state updated and auto-persisted to localStorage');
       },
 
       logout: () => {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('client_token');
-        }
+        console.log('🔐 AuthStore.logout() - Clearing Zustand state');
         set({
           user: null,
           token: null,
           isAuthenticated: false,
         });
+        console.log('✅ Zustand state cleared (localStorage auto-updated)');
       },
 
       updateUser: (updates) =>

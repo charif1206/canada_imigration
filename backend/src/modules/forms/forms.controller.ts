@@ -6,10 +6,13 @@ import {
   UploadedFile,
   HttpCode,
   HttpStatus,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { FormsService } from './forms.service';
 import { EquivalenceFormDto } from './dto/equivalence-form.dto';
 import { ResidenceFormDto } from './dto/residence-form.dto';
@@ -32,21 +35,27 @@ export class FormsController {
 
   @Post('equivalence')
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('portfolio', { storage }))
   async submitEquivalenceForm(
     @Body() equivalenceFormDto: EquivalenceFormDto,
     @UploadedFile() file?: any,
+    @Request() req?: any,
   ) {
-    return this.formsService.submitEquivalenceForm(equivalenceFormDto, file);
+    const clientId = req?.user?.sub; // Extract clientId from JWT
+    return this.formsService.submitEquivalenceForm(equivalenceFormDto, file, clientId);
   }
 
   @Post('residence')
   @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(FileInterceptor('fileUpload', { storage }))
   async submitResidenceForm(
     @Body() residenceFormDto: ResidenceFormDto,
     @UploadedFile() file?: any,
+    @Request() req?: any,
   ) {
-    return this.formsService.submitResidenceForm(residenceFormDto, file);
+    const clientId = req?.user?.sub; // Extract clientId from JWT
+    return this.formsService.submitResidenceForm(residenceFormDto, file, clientId);
   }
 }

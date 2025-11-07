@@ -49,7 +49,7 @@ export class ClientsService {
 
     // Send notifications
     await this.whatsappService.sendMessageToAdmin(
-      `🆕 New client registered!\n\nName: ${client.name}\nEmail: ${client.email}\nPhone: ${client.phone}\nType: ${client.immigrationType || 'Not specified'}`
+      `🆕 New client registered!\n\nName: ${client.name}\nEmail: ${client.email}`
     );
     
     await this.sheetsService.sendDataToSheet(client);
@@ -149,16 +149,33 @@ export class ClientsService {
     return clientData;
   }
 
-  async getAllClients() {
-    return this.prisma.client.findMany({
-      orderBy: { createdAt: 'desc' },
-      include: {
-        messages: {
-          orderBy: { createdAt: 'desc' },
-          take: 5,
+  async getAllClients(page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+    
+    const [clients, total] = await Promise.all([
+      this.prisma.client.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          messages: {
+            orderBy: { createdAt: 'desc' },
+            take: 5,
+          },
         },
+      }),
+      this.prisma.client.count(),
+    ]);
+
+    return {
+      data: clients,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
-    });
+    };
   }
 
   async getClientById(id: string) {
@@ -186,7 +203,6 @@ export class ClientsService {
       data: {
         isValidated: validateDto.isValidated,
         validatedAt: validateDto.isValidated ? new Date() : null,
-        notes: validateDto.notes,
       },
     });
 
@@ -210,7 +226,7 @@ export class ClientsService {
 
     // Send WhatsApp notification to admin
     await this.whatsappService.sendMessageToAdmin(
-      `📩 New message from ${message.client.name}\n\nSubject: ${message.subject}\n\nMessage: ${message.content}\n\nClient Email: ${message.client.email}\nClient Phone: ${message.client.phone}`
+      `📩 New message from ${message.client.name}\n\nSubject: ${message.subject}\n\nMessage: ${message.content}\n\nClient Email: ${message.client.email}`
     );
 
     // Send socket notification
@@ -250,7 +266,6 @@ export class ClientsService {
       name: client.name,
       isValidated: client.isValidated,
       validatedAt: client.validatedAt,
-      notes: client.notes,
     };
   }
 }
