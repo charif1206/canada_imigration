@@ -10,6 +10,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { FormsModule } from './modules/forms/forms.module';
+import { PartnersModule } from './modules/partners/partners.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { FormsModule } from './modules/forms/forms.module';
     AuthModule,
     ClientsModule,
     FormsModule,
+    PartnersModule,
     NotificationsModule,
     WhatsAppModule,
     SheetsModule,

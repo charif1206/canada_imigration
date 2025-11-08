@@ -59,3 +59,12 @@ model FormSubmission {
   
   @@index([clientId])  // Index for fast queries: "find all forms for client X"
 }
+
+// Partner applications from travel agencies
+model PartnerSubmission {
+  id        String   @id @default(uuid())
+  type      String   @default("PARTNER")
+  data      Json     // Stores all partner application fields (agencyName, managerName, email, phone, etc)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

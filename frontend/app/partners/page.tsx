@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useRef, ChangeEvent, FormEvent } from 'react';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const CheckListItem: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <li className="flex items-start">
@@ -23,6 +25,7 @@ interface FormData {
 const PartnersPage: React.FC = () => {
     const formRef = useRef<HTMLDivElement>(null);
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState<FormData>({
         agencyName: '', managerName: '', email: '', phone: '',
         address: '', city: '', clientCount: '', message: ''
@@ -36,14 +39,25 @@ const PartnersPage: React.FC = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        // Here you would typically send the data to a backend server
-        // to handle the email and WhatsApp message sending.
-        // For this frontend-only implementation, we'll simulate the success state.
-        console.log('Form data submitted:', formData);
-        setIsSubmitted(true);
-        window.scrollTo(0, 0);
+        setIsSubmitting(true);
+        
+        try {
+            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/partners`, formData);
+            
+            if (response.data.success) {
+                setIsSubmitted(true);
+                toast.success('Partner application submitted successfully!');
+                window.scrollTo(0, 0);
+            }
+        } catch (error) {
+            console.error('Error submitting partner application:', error);
+            const axiosError = error as { response?: { data?: { message?: string } } };
+            toast.error(axiosError.response?.data?.message || 'Failed to submit application. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -147,8 +161,12 @@ const PartnersPage: React.FC = () => {
                                         <textarea name="message" id="message" rows={4} value={formData.message} onChange={handleChange} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"></textarea>
                                     </div>
                                     <div className="md:col-span-2">
-                                        <button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition duration-300">
-                                            Soumettre mon inscription
+                                        <button 
+                                            type="submit" 
+                                            disabled={isSubmitting}
+                                            className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {isSubmitting ? 'Envoi en cours...' : 'Soumettre mon inscription'}
                                         </button>
                                     </div>
                                 </form>

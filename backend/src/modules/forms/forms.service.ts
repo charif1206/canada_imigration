@@ -144,4 +144,56 @@ export class FormsService {
       formId: `RESID-${Date.now()}`,
     };
   }
+
+  async getAllForms() {
+    try {
+      const forms = await (this.prisma as any).formSubmission.findMany({
+        include: {
+          client: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              passportNumber: true,
+              nationality: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+      return forms;
+    } catch (error) {
+      this.logger.error('Failed to fetch forms:', error);
+      return [];
+    }
+  }
+
+  async getFormById(id: string) {
+    try {
+      const form = await (this.prisma as any).formSubmission.findUnique({
+        where: { id },
+        include: {
+          client: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              passportNumber: true,
+              nationality: true,
+              isValidated: true,
+              validatedAt: true,
+              validatedBy: true,
+              createdAt: true,
+            },
+          },
+        },
+      });
+      return form;
+    } catch (error) {
+      this.logger.error(`Failed to fetch form ${id}:`, error);
+      return null;
+    }
+  }
 }

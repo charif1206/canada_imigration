@@ -1,6 +1,8 @@
 import {
   Controller,
   Post,
+  Get,
+  Param,
   Body,
   UseInterceptors,
   UploadedFile,
@@ -57,5 +59,17 @@ export class FormsController {
   ) {
     const clientId = req?.user?.sub; // Extract clientId from JWT
     return this.formsService.submitResidenceForm(residenceFormDto, file, clientId);
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  async getAllForms() {
+    return this.formsService.getAllForms();
+  }
+
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  async getFormById(@Param('id') id: string) {
+    return this.formsService.getFormById(id);
   }
 }

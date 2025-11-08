@@ -1,5 +1,8 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 const CheckListItem: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <li className="flex items-start text-start">
@@ -9,6 +12,8 @@ const CheckListItem: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 );
 
 const HomePage: React.FC = () => {
+    const { user } = useAuth();
+    
     return (
         <div className="animate-fade-in">
             {/* Hero Section */}
@@ -21,20 +26,22 @@ const HomePage: React.FC = () => {
                         <p className="text-lg md:text-xl text-slate-200 max-w-3xl mx-auto mb-8">
                             Équivalence de diplômes, préparation TCF Canada, suivi CSQ et Fédéral — tout votre parcours d'immigration simplifié en un seul endroit.
                         </p>
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                            <Link
-                                href="/register"
-                                className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full text-lg transition duration-300 transform hover:scale-105 inline-block"
-                            >
-                                Commencer votre parcours
-                            </Link>
-                            <Link
-                                href="/login"
-                                className="bg-white hover:bg-gray-100 text-blue-900 font-bold py-3 px-8 rounded-full text-lg transition duration-300 transform hover:scale-105 inline-block"
-                            >
-                                Accès client
-                            </Link>
-                        </div>
+                        {!user && (
+                            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                                <Link
+                                    href="/register"
+                                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-full text-lg transition duration-300 transform hover:scale-105 inline-block"
+                                >
+                                    Commencer votre parcours
+                                </Link>
+                                <Link
+                                    href="/login"
+                                    className="bg-white hover:bg-gray-100 text-blue-900 font-bold py-3 px-8 rounded-full text-lg transition duration-300 transform hover:scale-105 inline-block"
+                                >
+                                    Accès client
+                                </Link>
+                            </div>
+                        )}
                     </div>
                 </div>
             </section>
