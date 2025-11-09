@@ -3,7 +3,6 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { EquivalenceFormDto } from './dto/equivalence-form.dto';
 import { ResidenceFormDto } from './dto/residence-form.dto';
 import { SheetsService } from '../sheets/sheets.service';
-import { WhatsAppService } from '../whatsapp/whatsapp.service';
 
 @Injectable()
 export class FormsService {
@@ -12,7 +11,6 @@ export class FormsService {
   constructor(
     private prisma: PrismaService,
     private sheetsService: SheetsService,
-    private whatsappService: WhatsAppService,
   ) {}
 
   async submitEquivalenceForm(
@@ -68,15 +66,6 @@ export class FormsService {
       this.logger.error('Failed to send to Google Sheets:', error);
     }
 
-    // Send WhatsApp notification to admin
-    try {
-      const message = `📋 New Equivalence Form Submission!\n\nName: ${data.prenom} ${data.nom}\nEmail: ${data.email}\nPhone: ${data.telephone}\nUniversity: ${data.universite}\nDegree: ${data.titreLicence}`;
-      await this.whatsappService.sendMessageToAdmin(message);
-      this.logger.log('Notification sent via WhatsApp');
-    } catch (error) {
-      this.logger.error('Failed to send WhatsApp notification:', error);
-    }
-
     return {
       success: true,
       message: 'Equivalence form submitted successfully. We will review your application and contact you soon.',
@@ -112,15 +101,6 @@ export class FormsService {
       this.logger.log('Residence form sent to Google Sheets');
     } catch (error) {
       this.logger.error('Failed to send to Google Sheets:', error);
-    }
-
-    // Send WhatsApp notification to admin
-    try {
-      const message = `📋 New Residence Form Submission!\n\nName: ${data.nomComplet}\nCountry: ${data.paysResidence}\nProgram: ${data.programme}\nApplication #: ${data.numeroDossier}`;
-      await this.whatsappService.sendMessageToAdmin(message);
-      this.logger.log('Notification sent via WhatsApp');
-    } catch (error) {
-      this.logger.error('Failed to send WhatsApp notification:', error);
     }
 
     // Persist residence form to DB with client relationship

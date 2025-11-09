@@ -1,14 +1,14 @@
-import { Injectable, NotFoundException, Logger, ConflictException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { ValidateClientDto } from './dto/validate-client.dto';
 import { ClientRegisterDto } from './dto/client-register.dto';
 import { ClientLoginDto } from './dto/client-login.dto';
-import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { SheetsService } from '../sheets/sheets.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class ClientsService {
@@ -16,7 +16,6 @@ export class ClientsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly whatsappService: WhatsAppService,
     private readonly sheetsService: SheetsService,
     private readonly notificationsService: NotificationsService,
     private readonly jwtService: JwtService,
@@ -37,23 +36,40 @@ export class ClientsService {
     // Hash password
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
+    // Generate email verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     // Create client
     const client = await this.prisma.client.create({
       data: {
         name: registerDto.name,
         email: registerDto.email,
         password: hashedPassword,
+        emailVerificationToken: verificationToken,
+        emailVerificationExpires: verificationExpires,
+        isEmailVerified: false,
  // Use phone if provided, otherwise use email as placeholder
       } as any,
     });
 
-    // Send notifications
-    await this.whatsappService.sendMessageToAdmin(
-      `🆕 New client registered!\n\nName: ${client.name}\nEmail: ${client.email}`
-    );
-    
+    this.logger.log(`✅ New client created: ${client.email}`);
+
+    // Send verification email
+    try {
+      await this.notificationsService.sendVerificationEmail(
+        client.email,
+        verificationToken,
+        'client',
+      );
+      this.logger.log(`📧 Verification email sent to ${client.email}`);
+    } catch (error) {
+      this.logger.error('Failed to send verification email:', error);
+      // Don't throw error - allow registration to complete even if email fails
+    }
+
+    // Send data to Google Sheets
     await this.sheetsService.sendDataToSheet(client);
-    this.notificationsService.notifyClientCreation(client.id);
 
     // Generate JWT token
     const token = this.jwtService.sign({
@@ -206,10 +222,7 @@ export class ClientsService {
       },
     });
 
-    // Notify client about validation
-    this.notificationsService.notifyClientValidation(id, validateDto.isValidated);
-    
-
+    this.logger.log(`Client ${id} validation status: ${validateDto.isValidated}`);
 
     return client;
   }
@@ -224,13 +237,7 @@ export class ClientsService {
       },
     });
 
-    // Send WhatsApp notification to admin
-    await this.whatsappService.sendMessageToAdmin(
-      `📩 New message from ${message.client.name}\n\nSubject: ${message.subject}\n\nMessage: ${message.content}\n\nClient Email: ${message.client.email}`
-    );
-
-    // Send socket notification
-    this.notificationsService.notifyNewMessage(message.id, message.clientId);
+    this.logger.log(`Message created: ${message.id} from ${message.client.name}`);
 
     return message;
   }
@@ -267,5 +274,164 @@ export class ClientsService {
       isValidated: client.isValidated,
       validatedAt: client.validatedAt,
     };
+  }
+
+  /**
+   * Verify client email with token
+   */
+  async verifyEmail(token: string) {
+    this.logger.log(`Verifying client email with token: ${token.substring(0, 10)}...`);
+
+    const client = await this.prisma.client.findUnique({
+      where: { emailVerificationToken: token },
+    });
+
+    if (!client) {
+      throw new BadRequestException('Invalid or expired verification token');
+    }
+
+    if (client.isEmailVerified) {
+      return { message: 'Email already verified', alreadyVerified: true };
+    }
+
+    if (client.emailVerificationExpires < new Date()) {
+      throw new BadRequestException('Verification token has expired. Please request a new one.');
+    }
+
+    // Mark email as verified
+    await this.prisma.client.update({
+      where: { id: client.id },
+      data: {
+        isEmailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+      },
+    });
+
+    this.logger.log(`✅ Email verified for client: ${client.email}`);
+
+    // Send success email
+    try {
+      await this.notificationsService.sendVerificationSuccessEmail(
+        client.email,
+        client.name,
+        'client',
+      );
+    } catch (error) {
+      this.logger.error('Failed to send verification success email:', error);
+    }
+
+    return { message: 'Email verified successfully' };
+  }
+
+  /**
+   * Resend verification email
+   */
+  async resendVerificationEmail(email: string) {
+    const client = await this.prisma.client.findUnique({
+      where: { email },
+    });
+
+    if (!client) {
+      throw new BadRequestException('No account found with this email');
+    }
+
+    if (client.isEmailVerified) {
+      throw new BadRequestException('Email is already verified');
+    }
+
+    // Generate new token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await this.prisma.client.update({
+      where: { id: client.id },
+      data: {
+        emailVerificationToken: verificationToken,
+        emailVerificationExpires: verificationExpires,
+      },
+    });
+
+    // Send email
+    await this.notificationsService.sendVerificationEmail(
+      client.email,
+      verificationToken,
+      'client',
+    );
+
+    this.logger.log(`📧 Verification email resent to ${client.email}`);
+
+    return { message: 'Verification email sent' };
+  }
+
+  /**
+   * Request password reset (forgot password)
+   */
+  async forgotPassword(email: string) {
+    const client = await this.prisma.client.findUnique({
+      where: { email },
+    });
+
+    if (!client) {
+      // Don't reveal if email exists (security best practice)
+      return { message: 'If an account exists with this email, a password reset link has been sent.' };
+    }
+
+    // Generate reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await this.prisma.client.update({
+      where: { id: client.id },
+      data: {
+        resetPasswordToken: resetToken,
+        resetPasswordExpires: resetExpires,
+      },
+    });
+
+    // Send reset email
+    await this.notificationsService.sendPasswordResetEmail(
+      client.email,
+      resetToken,
+      'client',
+    );
+
+    this.logger.log(`📧 Password reset email sent to ${client.email}`);
+
+    return { message: 'If an account exists with this email, a password reset link has been sent.' };
+  }
+
+  /**
+   * Reset password with token
+   */
+  async resetPassword(token: string, newPassword: string) {
+    const client = await this.prisma.client.findUnique({
+      where: { resetPasswordToken: token },
+    });
+
+    if (!client) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    if (client.resetPasswordExpires < new Date()) {
+      throw new BadRequestException('Reset token has expired. Please request a new one.');
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password and clear reset token
+    await this.prisma.client.update({
+      where: { id: client.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+      },
+    });
+
+    this.logger.log(`✅ Password reset for client: ${client.email}`);
+
+    return { message: 'Password reset successfully' };
   }
 }

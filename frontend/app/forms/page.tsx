@@ -302,10 +302,30 @@ const FormulaireResidence: React.FC<{onSubmitSuccess: () => void}> = ({onSubmitS
 };
 
 const FormsPage: React.FC = () => {
-    const [submissionMessage, setSubmissionMessage] = useState('');
+    // Initialize state from localStorage directly (runs only on client, after mount)
+    const [hasSubmittedEquivalence, setHasSubmittedEquivalence] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('equivalence_form_submitted') === 'true';
+        }
+        return false;
+    });
+    
+    const [hasSubmittedResidence, setHasSubmittedResidence] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('residence_form_submitted') === 'true';
+        }
+        return false;
+    });
 
-    const handleFormSubmit = () => {
-        setSubmissionMessage("Merci pour votre confiance. Un conseiller vous contactera dans les 24 heures. Vous recevrez également les tarifs et les moyens de paiement par e-mail.");
+    const handleEquivalenceSubmit = () => {
+        localStorage.setItem('equivalence_form_submitted', 'true');
+        setHasSubmittedEquivalence(true);
+        window.scrollTo(0, 0);
+    };
+
+    const handleResidenceSubmit = () => {
+        localStorage.setItem('residence_form_submitted', 'true');
+        setHasSubmittedResidence(true);
         window.scrollTo(0, 0);
     };
 
@@ -317,20 +337,51 @@ const FormsPage: React.FC = () => {
                         <h1 className="text-4xl md:text-5xl font-bold text-blue-900">📝 Formulaires de services</h1>
                         <p className="text-lg text-slate-600 mt-2">Remplissez le formulaire correspondant à votre besoin.</p>
                     </div>
-
-                    {submissionMessage && (
-                        <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-md mb-8" role="alert">
-                            <p className="font-bold">Soumis !</p>
-                            <p>{submissionMessage}</p>
-                        </div>
-                    )}
                     
                     <FormSection id="equivalence" title="🎓 Formulaire Équivalence de diplôme" subtitle="Fournissez les informations nécessaires pour la demande d'équivalence.">
-                        <FormulaireEquivalence onSubmitSuccess={handleFormSubmit} />
+                        {hasSubmittedEquivalence ? (
+                            <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-md">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <svg className="h-10 w-10 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div className="ml-3">
+                                        <h3 className="text-lg font-medium text-green-800">Formulaire soumis avec succès !</h3>
+                                        <p className="mt-2 text-sm text-green-700">
+                                            Merci pour votre confiance. Votre demande d'équivalence de diplôme est en cours de traitement. Un conseiller vous contactera dans les 24 heures. Vous recevrez également les tarifs et les moyens de paiement par e-mail.
+                                        </p>
+                                        <p className="mt-2 text-sm font-semibold text-green-800">⏳ En attente de validation...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <FormulaireEquivalence onSubmitSuccess={handleEquivalenceSubmit} />
+                        )}
                     </FormSection>
 
                     <FormSection id="residence" title="🧩 Formulaire Résidence Permanente (CSQ et Fédéral)" subtitle="Mettez à jour votre dossier de résidence permanente avec nous.">
-                        <FormulaireResidence onSubmitSuccess={handleFormSubmit} />
+                        {hasSubmittedResidence ? (
+                            <div className="bg-green-50 border-l-4 border-green-500 p-6 rounded-md">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <svg className="h-10 w-10 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div className="ml-3">
+                                        <h3 className="text-lg font-medium text-green-800">Formulaire soumis avec succès !</h3>
+                                        <p className="mt-2 text-sm text-green-700">
+                                            Merci pour votre confiance. Votre demande de résidence permanente est en cours de traitement. Un conseiller vous contactera dans les 24 heures. Vous recevrez également les tarifs et les moyens de paiement par e-mail.
+                                        </p>
+                                        <p className="mt-2 text-sm font-semibold text-green-800">⏳ En attente de validation...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <FormulaireResidence onSubmitSuccess={handleResidenceSubmit} />
+                        )}
                     </FormSection>
                 </div>
             </div>

@@ -50,23 +50,12 @@ export default function RegisterPage() {
     }
 
     // Submit using React Query mutation
-    registerMutation.mutate(
-      {
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-      },
-      {
-        onSuccess: () => {
-          toast.success('🎉 Registration successful! Welcome aboard!');
-          // Router navigation is handled in the useRegister hook
-        },
-        onError: (error: unknown) => {
-          const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.';
-          toast.error(errorMessage);
-        },
-      }
-    );
+    // Note: Toast notifications are handled in the useRegister hook
+    registerMutation.mutate({
+      name: formData.name,
+      email: formData.email,
+      password: formData.password,
+    });
   };
 
   return (

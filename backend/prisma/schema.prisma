@@ -8,29 +8,43 @@ datasource db {
 }
 
 model Client {
-  id              String    @id @default(uuid())
-  name            String
-  email           String    @unique
-  password        String    @default("$2b$10$defaultpasswordhash")
-  passportNumber  String?
-  nationality     String?
-  isValidated     Boolean   @default(false)
-  validatedAt     DateTime?
-  validatedBy     String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  messages        Message[]
-  formSubmissions FormSubmission[]
+  id                        String    @id @default(uuid())
+  name                      String
+  email                     String    @unique
+  password                  String    @default("$2b$10$defaultpasswordhash")
+  passportNumber            String?
+  nationality               String?
+  isValidated               Boolean   @default(false)
+  validatedAt               DateTime?
+  validatedBy               String?
+  // Email verification fields
+  isEmailVerified           Boolean   @default(false)
+  emailVerificationToken    String?   @unique
+  emailVerificationExpires  DateTime?
+  // Password reset fields
+  resetPasswordToken        String?   @unique
+  resetPasswordExpires      DateTime?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  messages                  Message[]
+  formSubmissions           FormSubmission[]
 }
 
 model Admin {
-  id        String   @id @default(uuid())
-  username  String   @unique
-  password  String
-  email     String?
-  role      String   @default("admin")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                        String   @id @default(uuid())
+  username                  String   @unique
+  password                  String
+  email                     String?
+  role                      String   @default("admin")
+  // Email verification fields
+  isEmailVerified           Boolean  @default(false)
+  emailVerificationToken    String?  @unique
+  emailVerificationExpires  DateTime?
+  // Password reset fields
+  resetPasswordToken        String?  @unique
+  resetPasswordExpires      DateTime?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
 }
 
 model Message {

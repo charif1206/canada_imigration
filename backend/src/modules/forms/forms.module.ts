@@ -3,10 +3,9 @@ import { FormsController } from './forms.controller';
 import { FormsService } from './forms.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { SheetsModule } from '../sheets/sheets.module';
-import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 
 @Module({
-  imports: [PrismaModule, SheetsModule, WhatsAppModule],
+  imports: [PrismaModule, SheetsModule],
   controllers: [FormsController],
   providers: [FormsService],
   exports: [FormsService],

@@ -24,11 +24,28 @@ interface FormData {
 
 const PartnersPage: React.FC = () => {
     const formRef = useRef<HTMLDivElement>(null);
-    const [isSubmitted, setIsSubmitted] = useState(false);
+    
+    // Initialize state from localStorage directly (runs only on client, after mount)
+    const [isSubmitted, setIsSubmitted] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('partner_form_submitted') === 'true';
+        }
+        return false;
+    });
+    
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [formData, setFormData] = useState<FormData>({
-        agencyName: '', managerName: '', email: '', phone: '',
-        address: '', city: '', clientCount: '', message: ''
+    
+    const [formData, setFormData] = useState<FormData>(() => {
+        if (typeof window !== 'undefined') {
+            const savedFormData = localStorage.getItem('partner_form_data');
+            if (savedFormData) {
+                return JSON.parse(savedFormData);
+            }
+        }
+        return {
+            agencyName: '', managerName: '', email: '', phone: '',
+            address: '', city: '', clientCount: '', message: ''
+        };
     });
 
     const handleScrollToForm = () => {
@@ -47,6 +64,10 @@ const PartnersPage: React.FC = () => {
             const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/partners`, formData);
             
             if (response.data.success) {
+                // Save to localStorage to persist submission state
+                localStorage.setItem('partner_form_submitted', 'true');
+                localStorage.setItem('partner_form_data', JSON.stringify(formData));
+                
                 setIsSubmitted(true);
                 toast.success('Partner application submitted successfully!');
                 window.scrollTo(0, 0);

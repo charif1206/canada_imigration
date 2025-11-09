@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/useAuth';
-import NotificationBell from './NotificationBell';
 
 const NavLinkItem: React.FC<{ href: string; children: React.ReactNode; onClick: () => void }> = ({ href, children, onClick }) => {
     const pathname = usePathname();
@@ -62,11 +61,6 @@ const Header: React.FC = () => {
                     <div className="relative">
                         {client ? (
                             <div className="md:flex md:items-center md:space-x-2 p-4 md:p-0 border-t md:border-t-0 md:border-l md:pl-4">
-                                {/* Notification Bell - Navigate to Status */}
-                                <Link href="/status" className="block md:inline-block">
-                                    <NotificationBell />
-                                </Link>
-                                
                                 {/* Profile Icon - Navigate to Profile */}
                                 <Link
                                     href="/profile"

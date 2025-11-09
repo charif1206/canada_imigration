@@ -67,4 +67,42 @@ export class ClientsController {
   async getClientMessages(@Param('id') id: string) {
     return this.clientsService.getClientMessages(id);
   }
+
+  /**
+   * Verify client email with token
+   * Public route - no authentication required
+   */
+  @Get('auth/verify-email')
+  async verifyEmail(@Body() body: { token: string }) {
+    return this.clientsService.verifyEmail(body.token);
+  }
+
+  /**
+   * Resend verification email
+   * Public route - no authentication required
+   */
+  @Post('auth/resend-verification')
+  async resendVerification(@Body() body: { email: string }) {
+    return this.clientsService.resendVerificationEmail(body.email);
+  }
+
+  /**
+   * Request password reset (forgot password)
+   * Public route - no authentication required
+   */
+  @Post('auth/forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() body: { email: string }) {
+    return this.clientsService.forgotPassword(body.email);
+  }
+
+  /**
+   * Reset password with token
+   * Public route - no authentication required
+   */
+  @Post('auth/reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() body: { token: string; newPassword: string }) {
+    return this.clientsService.resetPassword(body.token, body.newPassword);
+  }
 }

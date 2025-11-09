@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PartnerSubmissionDto } from './dto/partner-submission.dto';
 import { SheetsService } from '../sheets/sheets.service';
-import { WhatsAppService } from '../whatsapp/whatsapp.service';
 
 @Injectable()
 export class PartnersService {
@@ -11,7 +10,6 @@ export class PartnersService {
   constructor(
     private prisma: PrismaService,
     private sheetsService: SheetsService,
-    private whatsappService: WhatsAppService,
   ) {}
 
   async submitPartnerApplication(data: PartnerSubmissionDto) {
@@ -52,15 +50,6 @@ export class PartnersService {
       this.logger.log('Partner application sent to Google Sheets');
     } catch (error) {
       this.logger.error('Failed to send to Google Sheets:', error);
-    }
-
-    // Send WhatsApp notification to admin
-    try {
-      const message = `🤝 New Partner Application!\n\nAgency: ${data.agencyName}\nManager: ${data.managerName}\nEmail: ${data.email}\nPhone: ${data.phone}\nCity: ${data.city || 'N/A'}\nMonthly Clients: ${data.clientCount || 'N/A'}\n\nMessage: ${data.message || 'N/A'}`;
-      await this.whatsappService.sendMessageToAdmin(message);
-      this.logger.log('Partner notification sent via WhatsApp');
-    } catch (error) {
-      this.logger.error('Failed to send WhatsApp notification:', error);
     }
 
     return {

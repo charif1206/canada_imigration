@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLogin } from '../../lib/hooks/useAuth';
 import { useAuth } from '@/lib/useAuth';
-import { toast } from 'react-toastify';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,22 +35,11 @@ export default function LoginPage() {
     e.preventDefault();
 
     // Submit using React Query mutation
-    loginMutation.mutate(
-      {
-        email: formData.email,
-        password: formData.password,
-      },
-      {
-        onSuccess: () => {
-          toast.success('🎉 Login successful! Welcome back!');
-          // Router navigation is handled in the useLogin hook
-        },
-        onError: (error: unknown) => {
-          const errorMessage = error instanceof Error ? error.message : 'Login failed. Please try again.';
-          toast.error(errorMessage);
-        },
-      }
-    );
+    // Note: Toast notifications are handled in the useLogin hook
+    loginMutation.mutate({
+      email: formData.email,
+      password: formData.password,
+    });
   };
 
   return (
@@ -86,9 +74,14 @@ export default function LoginPage() {
 
           {/* Password */}
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                Forgot Password?
+              </Link>
+            </div>
             <input
               id="password"
               name="password"
@@ -99,9 +92,6 @@ export default function LoginPage() {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="Your password"
             />
-            <p className="mt-2 text-sm text-gray-500">
-              Note: Password validation coming soon. Currently login by email only.
-            </p>
           </div>
 
           <button

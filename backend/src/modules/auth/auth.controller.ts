@@ -40,4 +40,40 @@ export class AuthController {
       body.newPassword,
     );
   }
+
+  /**
+   * Verify email with token
+   * Public route - no authentication required
+   */
+  @Get('verify-email')
+  async verifyEmail(@Body() body: { token: string }) {
+    return this.authService.verifyEmail(body.token);
+  }
+
+  /**
+   * Resend verification email
+   * Public route - no authentication required
+   */
+  @Post('resend-verification')
+  async resendVerification(@Body() body: { email: string }) {
+    return this.authService.resendVerificationEmail(body.email);
+  }
+
+  /**
+   * Request password reset (forgot password)
+   * Public route - no authentication required
+   */
+  @Post('forgot-password')
+  async forgotPassword(@Body() body: { email: string }) {
+    return this.authService.forgotPassword(body.email);
+  }
+
+  /**
+   * Reset password with token
+   * Public route - no authentication required
+   */
+  @Post('reset-password')
+  async resetPassword(@Body() body: { token: string; newPassword: string }) {
+    return this.authService.resetPassword(body.token, body.newPassword);
+  }
 }
