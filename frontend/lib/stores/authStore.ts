@@ -8,9 +8,7 @@ interface User {
   email: string;
   passportNumber?: string | null;
   nationality?: string | null;
-  isValidated: boolean;
-  validatedAt?: string | null;
-  validatedBy?: string | null;
+  isEmailVerified?: boolean;
   createdAt: string;
   updatedAt: string;
   

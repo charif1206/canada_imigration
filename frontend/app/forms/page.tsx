@@ -5,6 +5,7 @@ import { useSubmitEquivalenceForm, useSubmitResidenceForm } from '../../lib/hook
 import { toast } from 'react-toastify';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/lib/useAuth';
+import { checkFormStatus } from '@/lib/utils/formStatus';
 
 const InputField: React.FC<{ label: string; type: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; required?: boolean; placeholder?: string; error?: string; }> = ({ label, type, name, value, onChange, required = true, placeholder, error }) => (
     <div>
@@ -419,16 +420,9 @@ const FormsPage: React.FC = () => {
         window.location.reload();
     };
     
-    // Check if user can resubmit forms based on rejection time
-    const canResubmitEquivalence = client?.equivalenceStatus !== 'rejected' || 
-        (client?.equivalenceRejectedAt && calculateTimeRemaining(client.equivalenceRejectedAt).canResubmit);
-    
-    const canResubmitResidence = client?.residenceStatus !== 'rejected' || 
-        (client?.residenceRejectedAt && calculateTimeRemaining(client.residenceRejectedAt).canResubmit);
-    
-    // Check if forms are submitted and not rejected or can be resubmitted
-    const showEquivalenceForm = !client?.isSendingFormulaireEquivalence || canResubmitEquivalence;
-    const showResidenceForm = !client?.isSendingFormulaireResidence || canResubmitResidence;
+    // Check form status using the helper
+    const equivalenceCheck = checkFormStatus(client, 'equivalence');
+    const residenceCheck = checkFormStatus(client, 'residence');
 
     return (
         <ProtectedRoute>
@@ -440,7 +434,7 @@ const FormsPage: React.FC = () => {
                     </div>
                     
                     <FormSection id="equivalence" title="🎓 Formulaire Équivalence de diplôme" subtitle="Fournissez les informations nécessaires pour la demande d&apos;équivalence.">
-                        {client?.isSendingFormulaireEquivalence && !canResubmitEquivalence ? (
+                        {!equivalenceCheck.canSubmit ? (
                             <FormStatusDisplay 
                                 status={client?.equivalenceStatus || null}
                                 rejectedAt={client?.equivalenceRejectedAt || null}
@@ -449,7 +443,7 @@ const FormsPage: React.FC = () => {
                             />
                         ) : (
                             <>
-                                {client?.equivalenceStatus === 'rejected' && canResubmitEquivalence && (
+                                {client?.equivalenceStatus === 'rejected' && (
                                     <div className="mb-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
                                         <p className="text-sm text-yellow-700">
                                             ℹ️ Votre précédente soumission a été rejetée. Vous pouvez maintenant soumettre à nouveau le formulaire avec les corrections nécessaires.
@@ -462,7 +456,7 @@ const FormsPage: React.FC = () => {
                     </FormSection>
 
                     <FormSection id="residence" title="🧩 Formulaire Résidence Permanente (CSQ et Fédéral)" subtitle="Mettez à jour votre dossier de résidence permanente avec nous.">
-                        {client?.isSendingFormulaireResidence && !canResubmitResidence ? (
+                        {!residenceCheck.canSubmit ? (
                             <FormStatusDisplay 
                                 status={client?.residenceStatus || null}
                                 rejectedAt={client?.residenceRejectedAt || null}
@@ -471,7 +465,7 @@ const FormsPage: React.FC = () => {
                             />
                         ) : (
                             <>
-                                {client?.residenceStatus === 'rejected' && canResubmitResidence && (
+                                {client?.residenceStatus === 'rejected' && (
                                     <div className="mb-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
                                         <p className="text-sm text-yellow-700">
                                             ℹ️ Votre précédente soumission a été rejetée. Vous pouvez maintenant soumettre à nouveau le formulaire avec les corrections nécessaires.
