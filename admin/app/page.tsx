@@ -1,0 +1,604 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/src/stores/auth.store';
+import { useLogout } from '@/src/hooks/useAuth';
+import {
+  useAllClients,
+  usePendingClients,
+  useValidatedClients,
+  useQuickValidateClient,
+} from '@/src/hooks/useClients';
+import { useAllForms } from '@/src/hooks/useForms';
+import { useAllPartners } from '@/src/hooks/usePartners';
+import FormValidationModal from '@/src/components/FormValidationModal';
+
+type TabType = 'all' | 'pending' | 'validated' | 'forms' | 'partners';
+
+export default function AdminDashboard() {
+  const router = useRouter();
+  const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const hasHydrated = useAuthStore((state) => state._hasHydrated);
+  const logout = useLogout();
+  
+  const [activeTab, setActiveTab] = useState<TabType>('pending');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [formModalState, setFormModalState] = useState<{
+    isOpen: boolean;
+    clientId: string;
+    formType: 'equivalence' | 'residence' | 'partner';
+  }>({
+    isOpen: false,
+    clientId: '',
+    formType: 'equivalence',
+  });
+
+  const { data: allClientsData, isLoading: loadingAll } = useAllClients(currentPage);
+  const { data: pendingClients, isLoading: loadingPending, refetch: refetchPending } = usePendingClients();
+  const { data: validatedClients, isLoading: loadingValidated } = useValidatedClients();
+  const { data: formsData, isLoading: loadingForms } = useAllForms();
+  const { data: partnersData, isLoading: loadingPartners } = useAllPartners();
+  const quickValidate = useQuickValidateClient();
+
+  // Check authentication and redirect if needed - ONLY after hydration
+  useEffect(() => {
+    if (hasHydrated && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [hasHydrated, isAuthenticated, router]);
+
+  const handleValidateClick = (clientId: string) => {
+    quickValidate.mutate(clientId);
+  };
+
+  const handleFormModalOpen = (
+    clientId: string,
+    formType: 'equivalence' | 'residence' | 'partner'
+  ) => {
+    setFormModalState({
+      isOpen: true,
+      clientId,
+      formType,
+    });
+  };
+
+  const handleFormModalClose = () => {
+    setFormModalState({
+      ...formModalState,
+      isOpen: false,
+    });
+  };
+
+  const handleFormValidationSuccess = () => {
+    refetchPending();
+  };
+
+  const handleViewDetails = (type: 'client' | 'form' | 'partner', id: string) => {
+    if (type === 'client') {
+      // For clients, we can keep the modal or navigate to a detail page
+      // For now, let's navigate to details page for consistency
+      router.push(`/details?type=form&id=${id}`);
+    } else if (type === 'form') {
+      router.push(`/details?type=form&id=${id}`);
+    } else if (type === 'partner') {
+      router.push(`/details?type=partner&id=${id}`);
+    }
+  };
+
+  const formatDate = (date: Date | string) => {
+    return new Date(date).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    if (tab === 'all') {
+      setCurrentPage(1);
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const stats = {
+    totalClients: allClientsData?.pagination.total || 0,
+    pendingClients: pendingClients?.length || 0,
+    validatedClients: validatedClients?.length || 0,
+    totalForms: formsData?.length || 0,
+    totalPartners: partnersData?.length || 0,
+  };
+
+  const tabs = [
+    { id: 'pending' as TabType, label: '⏳ Pending Validation', count: stats.pendingClients },
+    { id: 'validated' as TabType, label: '✅ Recently Validated', count: stats.validatedClients },
+    { id: 'all' as TabType, label: '📋 All Clients', count: stats.totalClients },
+    { id: 'forms' as TabType, label: '📝 Form Submissions', count: stats.totalForms },
+    { id: 'partners' as TabType, label: '🤝 Partner Applications', count: stats.totalPartners },
+  ];
+
+  const renderTable = () => {
+    if (activeTab === 'pending') {
+      if (loadingPending) {
+        return <div className="text-center py-12 text-gray-500">Loading clients...</div>;
+      }
+      if (!pendingClients || pendingClients.length === 0) {
+        return <div className="text-center py-12 text-gray-500">No pending clients</div>;
+      }
+      return (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-yellow-600 text-white">
+                <th className="px-4 py-3 text-left">Name</th>
+                <th className="px-4 py-3 text-left">Email</th>
+                <th className="px-4 py-3 text-left">Passport</th>
+                <th className="px-4 py-3 text-left">Nationality</th>
+                <th className="px-4 py-3 text-left">Date</th>
+                <th className="px-4 py-3 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingClients.map((client: any) => (
+                <tr key={client.id} className="border-b hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-4 font-medium">{client.name}</td>
+                  <td className="px-4 py-4">{client.email}</td>
+                  <td className="px-4 py-4">{client.passportNumber || 'N/A'}</td>
+                  <td className="px-4 py-4">{client.nationality || 'N/A'}</td>
+                  <td className="px-4 py-4">{formatDate(client.createdAt)}</td>
+                  <td className="px-4 py-4">
+                    <div className="flex flex-col gap-2">
+                      {/* Client Validation Actions */}
+                      <div className="flex gap-2">
+                        <button
+                          className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm transition-colors font-medium"
+                          onClick={() => handleViewDetails('client', client.id)}
+                        >
+                          👁️ Details
+                        </button>
+                        <button
+                          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm transition-colors font-medium"
+                          onClick={() => handleValidateClick(client.id)}
+                          disabled={quickValidate.isPending}
+                        >
+                          {quickValidate.isPending ? '⏳' : '✓ Validate'}
+                        </button>
+                      </div>
+                      
+                      {/* Form Submission Validation Buttons */}
+                      {(client.isSendingFormulaireEquivalence || client.isSendingFormulaireResidence || client.isSendingPartners) && (
+                        <div className="flex gap-2 mt-1 pt-2 border-t border-gray-200">
+                          {client.isSendingFormulaireEquivalence && (
+                            <button
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                client.equivalenceStatus === 'pending'
+                                  ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                                  : client.equivalenceStatus === 'validated'
+                                  ? 'bg-green-500 text-white cursor-not-allowed'
+                                  : 'bg-purple-500 hover:bg-purple-600 text-white'
+                              }`}
+                              onClick={() => handleFormModalOpen(client.id, 'equivalence')}
+                              disabled={client.equivalenceStatus === 'validated'}
+                              title={client.equivalenceStatus === 'validated' ? 'Already validated' : 'View equivalence form'}
+                            >
+                              🎓 Equiv.
+                            </button>
+                          )}
+                          {client.isSendingFormulaireResidence && (
+                            <button
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                client.residenceStatus === 'pending'
+                                  ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                                  : client.residenceStatus === 'validated'
+                                  ? 'bg-green-500 text-white cursor-not-allowed'
+                                  : 'bg-purple-500 hover:bg-purple-600 text-white'
+                              }`}
+                              onClick={() => handleFormModalOpen(client.id, 'residence')}
+                              disabled={client.residenceStatus === 'validated'}
+                              title={client.residenceStatus === 'validated' ? 'Already validated' : 'View residence form'}
+                            >
+                              🧩 Resid.
+                            </button>
+                          )}
+                          {client.isSendingPartners && (
+                            <button
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                client.partnerStatus === 'pending'
+                                  ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                                  : client.partnerStatus === 'validated'
+                                  ? 'bg-green-500 text-white cursor-not-allowed'
+                                  : 'bg-purple-500 hover:bg-purple-600 text-white'
+                              }`}
+                              onClick={() => handleFormModalOpen(client.id, 'partner')}
+                              disabled={client.partnerStatus === 'validated'}
+                              title={client.partnerStatus === 'validated' ? 'Already validated' : 'View partner application'}
+                            >
+                              🤝 Partner
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    if (activeTab === 'validated') {
+      if (loadingValidated) {
+        return <div className="text-center py-12 text-gray-500">Loading clients...</div>;
+      }
+      if (!validatedClients || validatedClients.length === 0) {
+        return <div className="text-center py-12 text-gray-500">No validated clients yet</div>;
+      }
+      return (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-green-600 text-white">
+                <th className="px-4 py-3 text-left">Name</th>
+                <th className="px-4 py-3 text-left">Email</th>
+                <th className="px-4 py-3 text-left">Passport</th>
+                <th className="px-4 py-3 text-left">Nationality</th>
+                <th className="px-4 py-3 text-left">Validated At</th>
+                <th className="px-4 py-3 text-left">Validated By</th>
+              </tr>
+            </thead>
+            <tbody>
+              {validatedClients.map((client) => (
+                <tr key={client.id} className="border-b hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-4 font-medium">{client.name}</td>
+                  <td className="px-4 py-4">{client.email}</td>
+                  <td className="px-4 py-4">{client.passportNumber || 'N/A'}</td>
+                  <td className="px-4 py-4">{client.nationality || 'N/A'}</td>
+                  <td className="px-4 py-4">
+                    {client.validatedAt ? formatDate(client.validatedAt) : 'N/A'}
+                  </td>
+                  <td className="px-4 py-4">{client.validatedBy || 'N/A'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    if (activeTab === 'all') {
+      if (loadingAll) {
+        return <div className="text-center py-12 text-gray-500">Loading clients...</div>;
+      }
+      if (!allClientsData?.data || allClientsData.data.length === 0) {
+        return <div className="text-center py-12 text-gray-500">No clients found</div>;
+      }
+      return (
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-purple-600 text-white">
+                  <th className="px-4 py-3 text-left">Name</th>
+                  <th className="px-4 py-3 text-left">Email</th>
+                  <th className="px-4 py-3 text-left">Passport</th>
+                  <th className="px-4 py-3 text-left">Nationality</th>
+                  <th className="px-4 py-3 text-left">Status</th>
+                  <th className="px-4 py-3 text-left">Date</th>
+                  <th className="px-4 py-3 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allClientsData.data.map((client) => (
+                  <tr key={client.id} className="border-b hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-4 font-medium">{client.name}</td>
+                    <td className="px-4 py-4">{client.email}</td>
+                    <td className="px-4 py-4">{client.passportNumber || 'N/A'}</td>
+                    <td className="px-4 py-4">{client.nationality || 'N/A'}</td>
+                    <td className="px-4 py-4">
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-bold ${
+                          client.isValidated
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}
+                      >
+                        {client.isValidated ? 'Validated' : 'Pending'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">{formatDate(client.createdAt)}</td>
+                    <td className="px-4 py-4">
+                      {!client.isValidated && (
+                        <button
+                          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
+                          onClick={() => handleValidateClick(client.id)}
+                          disabled={quickValidate.isPending}
+                        >
+                          {quickValidate.isPending ? '⏳...' : 'Validate'}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          
+          {/* Pagination Controls */}
+          {allClientsData.pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-6 border-t">
+              <div className="text-sm text-gray-600">
+                Showing {((currentPage - 1) * 10) + 1} to {Math.min(currentPage * 10, allClientsData.pagination.total)} of {allClientsData.pagination.total} clients
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 rounded-lg border bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                >
+                  Previous
+                </button>
+                
+                {/* Page Numbers */}
+                <div className="flex gap-1">
+                  {Array.from({ length: allClientsData.pagination.totalPages }, (_, i) => i + 1)
+                    .filter(page => {
+                      // Show first page, last page, current page, and pages around current
+                      return page === 1 || 
+                             page === allClientsData.pagination.totalPages || 
+                             Math.abs(page - currentPage) <= 1;
+                    })
+                    .map((page, index, array) => {
+                      // Add ellipsis if there's a gap
+                      const prevPage = array[index - 1];
+                      const showEllipsis = prevPage && page - prevPage > 1;
+                      
+                      return (
+                        <div key={page} className="flex gap-1">
+                          {showEllipsis && (
+                            <span className="px-3 py-2 text-gray-500">...</span>
+                          )}
+                          <button
+                            onClick={() => handlePageChange(page)}
+                            className={`px-4 py-2 rounded-lg border font-medium transition-colors ${
+                              currentPage === page
+                                ? 'bg-purple-600 text-white border-purple-600'
+                                : 'bg-white text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        </div>
+                      );
+                    })}
+                </div>
+                
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === allClientsData.pagination.totalPages}
+                  className="px-4 py-2 rounded-lg border bg-white text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      );
+    }
+
+    if (activeTab === 'forms') {
+      if (loadingForms) {
+        return <div className="text-center py-12 text-gray-500">Loading forms...</div>;
+      }
+      if (!formsData || formsData.length === 0) {
+        return <div className="text-center py-12 text-gray-500">No form submissions yet</div>;
+      }
+      return (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-blue-600 text-white">
+                <th className="px-4 py-3 text-left">Type</th>
+                <th className="px-4 py-3 text-left">Client Name</th>
+                <th className="px-4 py-3 text-left">Email</th>
+                <th className="px-4 py-3 text-left">Submitted</th>
+                <th className="px-4 py-3 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {formsData.map((form) => (
+                <tr key={form.id} className="border-b hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-4">
+                    <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                      form.type === 'EQUIVALENCE'
+                        ? 'bg-purple-100 text-purple-800'
+                        : 'bg-indigo-100 text-indigo-800'
+                    }`}>
+                      {form.type === 'EQUIVALENCE' ? '🎓 Equivalence' : '🏠 Residence'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 font-medium">{form.client?.name || 'N/A'}</td>
+                  <td className="px-4 py-4">{String(form.data.email) || form.client?.email || 'N/A'}</td>
+                  <td className="px-4 py-4">{formatDate(form.createdAt)}</td>
+                  <td className="px-4 py-4">
+                    <button
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
+                      onClick={() => handleViewDetails('form', form.id)}
+                    >
+                      👁️ View
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    if (activeTab === 'partners') {
+      if (loadingPartners) {
+        return <div className="text-center py-12 text-gray-500">Loading partner applications...</div>;
+      }
+      if (!partnersData || partnersData.length === 0) {
+        return <div className="text-center py-12 text-gray-500">No partner applications yet</div>;
+      }
+      return (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-green-600 text-white">
+                <th className="px-4 py-3 text-left">Agency Name</th>
+                <th className="px-4 py-3 text-left">Manager</th>
+                <th className="px-4 py-3 text-left">Email</th>
+                <th className="px-4 py-3 text-left">Phone</th>
+                <th className="px-4 py-3 text-left">Submitted</th>
+                <th className="px-4 py-3 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {partnersData.map((partner) => (
+                <tr key={partner.id} className="border-b hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-4 font-medium">{partner.data.agencyName}</td>
+                  <td className="px-4 py-4">{partner.data.managerName}</td>
+                  <td className="px-4 py-4">{partner.data.email}</td>
+                  <td className="px-4 py-4">{partner.data.phone}</td>
+                  <td className="px-4 py-4">{formatDate(partner.createdAt)}</td>
+                  <td className="px-4 py-4">
+                    <button
+                      className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
+                      onClick={() => handleViewDetails('partner', partner.id)}
+                    >
+                      👁️ View
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* Header */}
+      <header className="bg-linear-to-r from-purple-600 to-purple-800 text-white shadow-lg">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">🍁 Canada Immigration Admin Dashboard</h1>
+              <p className="text-purple-100">Manage client applications and validations</p>
+            </div>
+            <div className="flex items-center gap-4">
+              {user && (
+                <div className="text-right">
+                  <p className="text-sm text-purple-100">Welcome back,</p>
+                  <p className="font-semibold">{user.username}</p>
+                </div>
+              )}
+              <Link
+                href="/addadmin"
+                className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors font-medium"
+              >
+                + Add Admin
+              </Link>
+              <button
+                onClick={logout}
+                className="bg-white text-purple-700 px-4 py-2 rounded-lg hover:bg-purple-50 transition-colors font-medium"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-shadow">
+            <h3 className="text-purple-600 text-sm font-semibold uppercase mb-2">Total Clients</h3>
+            <div className="text-4xl font-bold text-gray-800">{stats.totalClients}</div>
+          </div>
+          <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-shadow">
+            <h3 className="text-purple-600 text-sm font-semibold uppercase mb-2">Pending Validation</h3>
+            <div className="text-4xl font-bold text-gray-800">{stats.pendingClients}</div>
+          </div>
+          <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-shadow">
+            <h3 className="text-purple-600 text-sm font-semibold uppercase mb-2">Validated</h3>
+            <div className="text-4xl font-bold text-gray-800">{stats.validatedClients}</div>
+          </div>
+        </div>
+
+        {/* Tabs and Table Container */}
+        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          {/* Tabs */}
+          <div className="flex border-b">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`flex-1 px-6 py-4 font-semibold text-sm transition-colors relative ${
+                  activeTab === tab.id
+                    ? 'text-purple-600 bg-purple-50'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span>{tab.label}</span>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-bold ${
+                      activeTab === tab.id
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </div>
+                {activeTab === tab.id && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-purple-600"></div>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Table Content */}
+          <div className="p-8">
+            {renderTable()}
+          </div>
+        </div>
+      </div>
+      
+      {/* Form Validation Modal */}
+      <FormValidationModal
+        isOpen={formModalState.isOpen}
+        onClose={handleFormModalClose}
+        clientId={formModalState.clientId}
+        formType={formModalState.formType}
+        onSuccess={handleFormValidationSuccess}
+      />
+    </div>
+  );
+}
