@@ -219,15 +219,17 @@ export class ClientsService {
   async validateClient(id: string, validateDto: ValidateClientDto) {
     this.logger.log(`Validating client: ${id}`);
     
-    const client = await this.prisma.client.update({
+    // Note: isValidated field removed from schema
+    // Validation now tracked per form type (equivalenceStatus, residenceStatus, partnerStatus)
+    const client = await this.prisma.client.findUnique({
       where: { id },
-      data: {
-        isValidated: validateDto.isValidated,
-        validatedAt: validateDto.isValidated ? new Date() : null,
-      },
     });
 
-    this.logger.log(`Client ${id} validation status: ${validateDto.isValidated}`);
+    if (!client) {
+      throw new Error(`Client with ID ${id} not found`);
+    }
+
+    this.logger.log(`Client ${id} found - validation handled per form type`);
 
     return client;
   }
@@ -273,11 +275,14 @@ export class ClientsService {
 
   async getValidationStatus(clientId: string) {
     const client = await this.getClientById(clientId);
+    
+    // Return validation status per form type
     return {
       clientId: client.id,
       name: client.name,
-      isValidated: client.isValidated,
-      validatedAt: client.validatedAt,
+      equivalenceStatus: client.equivalenceStatus || 'not_submitted',
+      residenceStatus: client.residenceStatus || 'not_submitted',
+      partnerStatus: client.partnerStatus || 'not_submitted',
     };
   }
 

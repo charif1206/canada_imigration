@@ -9,9 +9,7 @@ export interface Client {
   email: string;
   passportNumber: string | null;
   nationality: string | null;
-  isValidated: boolean;
-  validatedAt: Date | null;
-  validatedBy: string | null;
+  isEmailVerified?: boolean;
   createdAt: Date;
   updatedAt: Date;
   

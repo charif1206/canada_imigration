@@ -18,9 +18,7 @@ export interface FormSubmission {
     email: string;
     passportNumber?: string;
     nationality?: string;
-    isValidated: boolean;
-    validatedAt?: string;
-    validatedBy?: string;
+    isEmailVerified?: boolean;
     createdAt: string;
   };
 }

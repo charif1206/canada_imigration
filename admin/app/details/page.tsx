@@ -4,12 +4,13 @@ import React from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useFormById } from '@/src/hooks/useForms';
 import { usePartnerById } from '@/src/hooks/usePartners';
+import { useClientById } from '@/src/hooks/useClients';
 import Link from 'next/link';
 
 export default function DetailsPage() {
   const searchParams = useSearchParams();
   
-  const type = searchParams.get('type'); // 'form' or 'partner'
+  const type = searchParams.get('type'); // 'form', 'partner', or 'client'
   const id = searchParams.get('id');
   
   const { data: formData, isLoading: formLoading } = useFormById(
@@ -18,9 +19,12 @@ export default function DetailsPage() {
   const { data: partnerData, isLoading: partnerLoading } = usePartnerById(
     type === 'partner' && id ? id : ''
   );
+  const { data: clientData, isLoading: clientLoading } = useClientById(
+    type === 'client' && id ? id : ''
+  );
 
-  const isLoading = type === 'form' ? formLoading : partnerLoading;
-  const data = type === 'form' ? formData : partnerData;
+  const isLoading = type === 'form' ? formLoading : type === 'partner' ? partnerLoading : clientLoading;
+  const data = type === 'form' ? formData : type === 'partner' ? partnerData : clientData;
 
   if (isLoading) {
     return (
@@ -49,7 +53,7 @@ export default function DetailsPage() {
     );
   }
 
-  const formatDate = (date: string) => {
+  const formatDate = (date: string | Date) => {
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -122,12 +126,12 @@ export default function DetailsPage() {
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Validation Status</p>
+                    <p className="text-sm text-gray-500">Email Verified</p>
                     <p className="font-semibold">
-                      {formData.client.isValidated ? (
-                        <span className="text-green-600">✅ Validated</span>
+                      {formData.client.isEmailVerified ? (
+                        <span className="text-green-600">✅ Verified</span>
                       ) : (
-                        <span className="text-yellow-600">⏳ Pending</span>
+                        <span className="text-yellow-600">⏳ Not Verified</span>
                       )}
                     </p>
                   </div>
@@ -312,6 +316,155 @@ export default function DetailsPage() {
                   <p className="text-gray-800">{partnerData.data.message}</p>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {type === 'client' && clientData && (
+          <div className="bg-white rounded-xl shadow-md p-8">
+            <div className="border-b pb-6 mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">
+                Client Profile
+              </h2>
+              <p className="text-gray-600">Member since {formatDate(clientData.createdAt)}</p>
+            </div>
+
+            {/* Client Information */}
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                <span className="bg-purple-100 text-purple-600 rounded-full p-2 mr-3">👤</span>
+                Personal Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-6 rounded-lg">
+                <div>
+                  <p className="text-sm text-gray-500">Full Name</p>
+                  <p className="font-semibold text-gray-800">{clientData.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Email</p>
+                  <p className="font-semibold text-gray-800">{clientData.email}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Passport Number</p>
+                  <p className="font-semibold text-gray-800">{clientData.passportNumber || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Nationality</p>
+                  <p className="font-semibold text-gray-800">{clientData.nationality || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Email Verified</p>
+                  <p className="font-semibold">
+                    {clientData.isEmailVerified ? (
+                      <span className="text-green-600">✅ Verified</span>
+                    ) : (
+                      <span className="text-yellow-600">⏳ Not Verified</span>
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Last Updated</p>
+                  <p className="font-semibold text-gray-800">{formatDate(clientData.updatedAt)}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Form Submissions Status */}
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                <span className="bg-blue-100 text-blue-600 rounded-full p-2 mr-3">📝</span>
+                Form Submissions
+              </h3>
+              <div className="space-y-4">
+                {/* Partner Status */}
+                {clientData.isSendingPartners && (
+                  <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-green-500">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-800">🤝 Partner Application</p>
+                        <p className="text-sm text-gray-600">Status: {clientData.partnerStatus || 'unknown'}</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        clientData.partnerStatus === 'validated' 
+                          ? 'bg-green-100 text-green-800' 
+                          : clientData.partnerStatus === 'rejected' 
+                          ? 'bg-red-100 text-red-800' 
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {clientData.partnerStatus === 'validated' ? '✅ Validated' : 
+                         clientData.partnerStatus === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
+                      </span>
+                    </div>
+                    {clientData.partnerRejectionReason && (
+                      <p className="text-sm text-red-600 mt-2">
+                        Rejection Reason: {clientData.partnerRejectionReason}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Residence Status */}
+                {clientData.isSendingFormulaireResidence && (
+                  <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-indigo-500">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-800">🏠 Residence Application</p>
+                        <p className="text-sm text-gray-600">Status: {clientData.residenceStatus || 'unknown'}</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        clientData.residenceStatus === 'validated' 
+                          ? 'bg-green-100 text-green-800' 
+                          : clientData.residenceStatus === 'rejected' 
+                          ? 'bg-red-100 text-red-800' 
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {clientData.residenceStatus === 'validated' ? '✅ Validated' : 
+                         clientData.residenceStatus === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
+                      </span>
+                    </div>
+                    {clientData.residenceRejectionReason && (
+                      <p className="text-sm text-red-600 mt-2">
+                        Rejection Reason: {clientData.residenceRejectionReason}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Equivalence Status */}
+                {clientData.isSendingFormulaireEquivalence && (
+                  <div className="bg-gray-50 p-4 rounded-lg border-l-4 border-purple-500">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-gray-800">🎓 Equivalence Application</p>
+                        <p className="text-sm text-gray-600">Status: {clientData.equivalenceStatus || 'unknown'}</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        clientData.equivalenceStatus === 'validated' 
+                          ? 'bg-green-100 text-green-800' 
+                          : clientData.equivalenceStatus === 'rejected' 
+                          ? 'bg-red-100 text-red-800' 
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {clientData.equivalenceStatus === 'validated' ? '✅ Validated' : 
+                         clientData.equivalenceStatus === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
+                      </span>
+                    </div>
+                    {clientData.equivalenceRejectionReason && (
+                      <p className="text-sm text-red-600 mt-2">
+                        Rejection Reason: {clientData.equivalenceRejectionReason}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {!clientData.isSendingPartners && 
+                 !clientData.isSendingFormulaireResidence && 
+                 !clientData.isSendingFormulaireEquivalence && (
+                  <div className="text-center py-4 text-gray-500">
+                    No form submissions yet
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

@@ -13,6 +13,7 @@ import {
   getValidatedClients,
   validateClient,
   quickValidateClient,
+  getClientById,
 } from '@/src/api/clients.api';
 import { ValidateClientRequest } from '@/src/types/client.types';
 
@@ -54,6 +55,18 @@ export const useValidatedClients = () => {
   return useQuery({
     queryKey: clientKeys.validated(),
     queryFn: getValidatedClients,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+};
+
+/**
+ * Hook to fetch a single client by ID
+ */
+export const useClientById = (id: string) => {
+  return useQuery({
+    queryKey: clientKeys.detail(id),
+    queryFn: () => getClientById(id),
+    enabled: !!id, // Only fetch if ID is provided
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 };

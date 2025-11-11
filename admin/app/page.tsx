@@ -12,7 +12,7 @@ import {
 } from '@/src/hooks/useClients';
 import FormValidationModal from '@/src/components/FormValidationModal';
 
-type TabType = 'pending-partner' | 'pending-residence' | 'pending-equivalence' | 'validated' | 'all-clients';
+type TabType = 'pending-partner' | 'pending-residence' | 'pending-equivalence' | 'last-verified' | 'all-clients';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -133,7 +133,7 @@ export default function AdminDashboard() {
     { id: 'pending-partner' as TabType, label: '🤝 Pending Partner', count: stats.pendingPartner },
     { id: 'pending-residence' as TabType, label: '🏠 Pending Residence', count: stats.pendingResidence },
     { id: 'pending-equivalence' as TabType, label: '🎓 Pending Equivalence', count: stats.pendingEquivalence },
-    { id: 'validated' as TabType, label: '✅ Recently Validated', count: stats.validatedClients },
+    { id: 'last-verified' as TabType, label: '✅ Last Verified', count: stats.validatedClients },
     { id: 'all-clients' as TabType, label: '📋 All Clients', count: stats.totalClients },
   ];
 
@@ -304,15 +304,74 @@ export default function AdminDashboard() {
     }
 
     // ========================================
-    // TAB 4: RECENTLY VALIDATED CLIENTS
+    // TAB 4: LAST VERIFIED (ANY VERIFICATION)
     // ========================================
-    if (activeTab === 'validated') {
+    if (activeTab === 'last-verified') {
       if (loadingValidated) {
-        return <div className="text-center py-12 text-gray-500">Loading validated clients...</div>;
+        return <div className="text-center py-12 text-gray-500">Loading verified clients...</div>;
       }
       if (!validatedClients || validatedClients.length === 0) {
-        return <div className="text-center py-12 text-gray-500">No validated clients yet</div>;
+        return <div className="text-center py-12 text-gray-500">No verified clients yet</div>;
       }
+      
+      // Create array of verification entries (one row per verification)
+      const verificationEntries: Array<{
+        id: string;
+        clientId: string;
+        clientName: string;
+        clientEmail: string;
+        verificationType: string;
+        verificationIcon: string;
+        verifiedAt: Date;
+        passportNumber?: string;
+        nationality?: string;
+      }> = [];
+      
+      validatedClients.forEach((client) => {
+        if (client.equivalenceStatus === 'validated') {
+          verificationEntries.push({
+            id: `${client.id}-equivalence`,
+            clientId: client.id,
+            clientName: client.name,
+            clientEmail: client.email,
+            verificationType: 'Equivalence',
+            verificationIcon: '🎓',
+            verifiedAt: client.updatedAt,
+            passportNumber: client.passportNumber,
+            nationality: client.nationality,
+          });
+        }
+        if (client.residenceStatus === 'validated') {
+          verificationEntries.push({
+            id: `${client.id}-residence`,
+            clientId: client.id,
+            clientName: client.name,
+            clientEmail: client.email,
+            verificationType: 'Residence',
+            verificationIcon: '🏠',
+            verifiedAt: client.updatedAt,
+            passportNumber: client.passportNumber,
+            nationality: client.nationality,
+          });
+        }
+        if (client.partnerStatus === 'validated') {
+          verificationEntries.push({
+            id: `${client.id}-partner`,
+            clientId: client.id,
+            clientName: client.name,
+            clientEmail: client.email,
+            verificationType: 'Partner',
+            verificationIcon: '🤝',
+            verifiedAt: client.updatedAt,
+            passportNumber: client.passportNumber,
+            nationality: client.nationality,
+          });
+        }
+      });
+      
+      // Sort by most recent verification first
+      verificationEntries.sort((a, b) => new Date(b.verifiedAt).getTime() - new Date(a.verifiedAt).getTime());
+      
       return (
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -320,44 +379,36 @@ export default function AdminDashboard() {
               <tr className="bg-green-600 text-white">
                 <th className="px-4 py-3 text-left">Name</th>
                 <th className="px-4 py-3 text-left">Email</th>
-                <th className="px-4 py-3 text-left">Validated Type</th>
-                <th className="px-4 py-3 text-left">Validated At</th>
+                <th className="px-4 py-3 text-left">Passport</th>
+                <th className="px-4 py-3 text-left">Nationality</th>
+                <th className="px-4 py-3 text-left">Verified Type</th>
+                <th className="px-4 py-3 text-left">Verified At</th>
                 <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {validatedClients.map((client) => {
-                // Determine which form type was validated
-                const validatedTypes = [];
-                if (client.equivalenceStatus === 'validated') validatedTypes.push('🎓 Equivalence');
-                if (client.residenceStatus === 'validated') validatedTypes.push('🏠 Residence');
-                if (client.partnerStatus === 'validated') validatedTypes.push('🤝 Partner');
-                
-                return (
-                  <tr key={client.id} className="border-b hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-4 font-medium">{client.name}</td>
-                    <td className="px-4 py-4">{client.email}</td>
-                    <td className="px-4 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {validatedTypes.map((type, idx) => (
-                          <span key={idx} className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                            {type}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">{formatDate(client.updatedAt)}</td>
-                    <td className="px-4 py-4">
-                      <button
-                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
-                        onClick={() => handleViewDetails('client', client.id)}
-                      >
-                        👁️ View Details
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {verificationEntries.map((entry) => (
+                <tr key={entry.id} className="border-b hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-4 font-medium">{entry.clientName}</td>
+                  <td className="px-4 py-4">{entry.clientEmail}</td>
+                  <td className="px-4 py-4">{entry.passportNumber || 'N/A'}</td>
+                  <td className="px-4 py-4">{entry.nationality || 'N/A'}</td>
+                  <td className="px-4 py-4">
+                    <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                      {entry.verificationIcon} {entry.verificationType}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">{formatDate(entry.verifiedAt)}</td>
+                  <td className="px-4 py-4">
+                    <button
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
+                      onClick={() => router.push(`/details?type=client&id=${entry.clientId}`)}
+                    >
+                      👁️ View Data
+                    </button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
