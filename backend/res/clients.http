@@ -21,13 +21,7 @@ Content-Type: {{contentType}}
 {
   "name": "John Smith",
   "email": "john.smith@example.com",
-  "phone": "+1-416-555-0001",
-  "passportNumber": "CA123456789",
-  "nationality": "American",
-  "dateOfBirth": "1990-05-15",
-  "address": "123 Main Street, Toronto, ON M5V 2T6, Canada",
-  "immigrationType": "skilled-worker",
-  "notes": "Software Engineer with 5 years experience"
+
 }
 
 ### Expected: 201 Created with client data

@@ -13,6 +13,24 @@ interface User {
   validatedBy?: string | null;
   createdAt: string;
   updatedAt: string;
+  
+  // Form tracking fields for equivalence form
+  isSendingFormulaireEquivalence?: boolean;
+  equivalenceStatus?: string | null;
+  equivalenceRejectedAt?: string | null;
+  equivalenceRejectionReason?: string | null;
+  
+  // Form tracking fields for residence form
+  isSendingFormulaireResidence?: boolean;
+  residenceStatus?: string | null;
+  residenceRejectedAt?: string | null;
+  residenceRejectionReason?: string | null;
+  
+  // Form tracking fields for partner form
+  isSendingPartners?: boolean;
+  partnerStatus?: string | null;
+  partnerRejectedAt?: string | null;
+  partnerRejectionReason?: string | null;
 }
 
 interface AuthState {

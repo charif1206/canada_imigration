@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PartnerSubmissionDto } from './dto/partner-submission.dto';
-import { SheetsService } from '../sheets/sheets.service';
 
 @Injectable()
 export class PartnersService {
@@ -9,7 +8,6 @@ export class PartnersService {
 
   constructor(
     private prisma: PrismaService,
-    private sheetsService: SheetsService,
   ) {}
 
   async submitPartnerApplication(data: PartnerSubmissionDto) {
@@ -39,17 +37,6 @@ export class PartnersService {
       this.logger.log(`Partner application persisted (id=${saved.id})`);
     } catch (error) {
       this.logger.warn('Could not save to database, continuing with notifications');
-    }
-
-    // Send to Google Sheets
-    try {
-      await this.sheetsService.sendDataToSheet({
-        formType: 'PARTNER',
-        ...partnerData,
-      });
-      this.logger.log('Partner application sent to Google Sheets');
-    } catch (error) {
-      this.logger.error('Failed to send to Google Sheets:', error);
     }
 
     return {

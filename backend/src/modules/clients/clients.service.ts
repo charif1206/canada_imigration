@@ -4,7 +4,6 @@ import { CreateMessageDto } from './dto/create-message.dto';
 import { ValidateClientDto } from './dto/validate-client.dto';
 import { ClientRegisterDto } from './dto/client-register.dto';
 import { ClientLoginDto } from './dto/client-login.dto';
-import { SheetsService } from '../sheets/sheets.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -16,7 +15,6 @@ export class ClientsService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly sheetsService: SheetsService,
     private readonly notificationsService: NotificationsService,
     private readonly jwtService: JwtService,
   ) {}
@@ -68,9 +66,6 @@ export class ClientsService {
       // Don't throw error - allow registration to complete even if email fails
     }
 
-    // Send data to Google Sheets
-    await this.sheetsService.sendDataToSheet(client);
-
     // Generate JWT token
     const token = this.jwtService.sign({
       sub: client.id,
@@ -78,8 +73,13 @@ export class ClientsService {
       type: 'client',
     });
 
-    // Remove password from response
-    const { password, ...clientData } = client as any;
+    // Remove password and sensitive tokens from response
+    const { 
+      password, 
+      emailVerificationToken, 
+      resetPasswordToken,
+      ...clientData 
+    } = client as any;
 
     return {
       access_token: token,
@@ -128,8 +128,13 @@ export class ClientsService {
 
       this.logger.log(`Client login successful: ${loginDto.email}`);
 
-      // Remove password from response
-      const { password, ...responseData } = clientData;
+      // Remove password and sensitive tokens from response
+      const { 
+        password, 
+        emailVerificationToken, 
+        resetPasswordToken,
+        ...responseData 
+      } = clientData;
 
       return {
         access_token: token,

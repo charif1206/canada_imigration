@@ -5,13 +5,11 @@ import { ClientsController } from './clients.controller';
 import { ClientsService } from './clients.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
-import { SheetsModule } from '../sheets/sheets.module';
 
 @Module({
   imports: [
     PrismaModule,
     NotificationsModule,
-    SheetsModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {

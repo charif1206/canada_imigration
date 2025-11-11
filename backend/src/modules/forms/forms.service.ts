@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EquivalenceFormDto } from './dto/equivalence-form.dto';
 import { ResidenceFormDto } from './dto/residence-form.dto';
-import { SheetsService } from '../sheets/sheets.service';
 
 @Injectable()
 export class FormsService {
@@ -10,7 +9,6 @@ export class FormsService {
 
   constructor(
     private prisma: PrismaService,
-    private sheetsService: SheetsService,
   ) {}
 
   async submitEquivalenceForm(
@@ -51,19 +49,22 @@ export class FormsService {
         },
       });
       this.logger.log(`Equivalence form persisted (id=${saved.id}, clientId=${clientId})`);
+      
+      // Update client's form tracking status
+      if (clientId) {
+        await this.prisma.client.update({
+          where: { id: clientId },
+          data: {
+            isSendingFormulaireEquivalence: true,
+            equivalenceStatus: 'pending',
+            equivalenceRejectedAt: null,
+            equivalenceRejectionReason: null,
+          },
+        });
+        this.logger.log(`Updated client ${clientId} equivalence form status to pending`);
+      }
     } catch (error) {
       this.logger.warn('Could not save to database, continuing with notifications');
-    }
-
-    // Send to Google Sheets
-    try {
-      await this.sheetsService.sendDataToSheet({
-        formType: 'EQUIVALENCE',
-        ...formData,
-      });
-      this.logger.log('Equivalence form sent to Google Sheets');
-    } catch (error) {
-      this.logger.error('Failed to send to Google Sheets:', error);
     }
 
     return {
@@ -92,17 +93,6 @@ export class FormsService {
       submittedAt: new Date(),
     };
 
-    // Send to Google Sheets
-    try {
-      await this.sheetsService.sendDataToSheet({
-        formType: 'RESIDENCE',
-        ...formData,
-      });
-      this.logger.log('Residence form sent to Google Sheets');
-    } catch (error) {
-      this.logger.error('Failed to send to Google Sheets:', error);
-    }
-
     // Persist residence form to DB with client relationship
     try {
       const saved = await (this.prisma as any).formSubmission.create({
@@ -114,6 +104,20 @@ export class FormsService {
         },
       });
       this.logger.log(`Residence form persisted (id=${saved.id}, clientId=${clientId})`);
+      
+      // Update client's form tracking status
+      if (clientId) {
+        await this.prisma.client.update({
+          where: { id: clientId },
+          data: {
+            isSendingFormulaireResidence: true,
+            residenceStatus: 'pending',
+            residenceRejectedAt: null,
+            residenceRejectionReason: null,
+          },
+        });
+        this.logger.log(`Updated client ${clientId} residence form status to pending`);
+      }
     } catch (error) {
       this.logger.warn('Could not save residence form to database, continuing');
     }

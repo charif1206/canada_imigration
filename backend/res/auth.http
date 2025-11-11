@@ -1,18 +1,19 @@
 ### ========================================
 ### 🍁 CANADA IMMIGRATION - AUTH MODULE TESTS
 ### ========================================
-### Based on: auth.controller.ts & auth.service.ts
-### Endpoints: POST /login, POST /register, GET /profile, PATCH /change-password
+### Complete testing guide for admin authentication, email verification, and password management
+### Endpoints: login, register, profile, verify-email, forgot-password, reset-password, 
+###            resend-verification, change-password
 ### ========================================
 
 ### 📌 CONFIGURATION
 @baseUrl = http://localhost:3000
 @contentType = application/json
 
-### 🔑 STEP 1: Login first to get your token
-### After running the login request below, copy the access_token 
-### from the response and paste it in the @token variable
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImNocmlmIiwic3ViIjoiOWJjZWZmYzMtM2ZlOC00ZTZmLTljNDgtNTVlZGJiNGM4OGNlIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzYyNDY1MTI5LCJleHAiOjE3NjI1NTE1Mjl9.HViGpmKiBUYbBYIR8jHmTlLRbUwFrZZOUrh8fuXoC8Y
+### 🔑 TOKENS (Update after testing)
+@token = your_admin_token_here
+@verificationToken = your_verification_token_here
+@resetToken = your_reset_token_here
 
 
 ### ========================================

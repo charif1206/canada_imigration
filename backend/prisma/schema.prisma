@@ -8,26 +8,39 @@ datasource db {
 }
 
 model Client {
-  id                        String    @id @default(uuid())
-  name                      String
-  email                     String    @unique
-  password                  String    @default("$2b$10$defaultpasswordhash")
-  passportNumber            String?
-  nationality               String?
-  isValidated               Boolean   @default(false)
-  validatedAt               DateTime?
-  validatedBy               String?
+  id                                String    @id @default(uuid())
+  name                              String
+  email                             String    @unique
+  password                          String    @default("$2b$10$defaultpasswordhash")
+  passportNumber                    String?
+  nationality                       String?
+  isValidated                       Boolean   @default(false)
+  validatedAt                       DateTime?
+  validatedBy                       String?
   // Email verification fields
-  isEmailVerified           Boolean   @default(false)
-  emailVerificationToken    String?   @unique
-  emailVerificationExpires  DateTime?
+  isEmailVerified                   Boolean   @default(false)
+  emailVerificationToken            String?   @unique
+  emailVerificationExpires          DateTime?
   // Password reset fields
-  resetPasswordToken        String?   @unique
-  resetPasswordExpires      DateTime?
-  createdAt                 DateTime  @default(now())
-  updatedAt                 DateTime  @updatedAt
-  messages                  Message[]
-  formSubmissions           FormSubmission[]
+  resetPasswordToken                String?   @unique
+  resetPasswordExpires              DateTime?
+  // Form submission tracking
+  isSendingFormulaireEquivalence    Boolean   @default(false)
+  equivalenceStatus                 String?   // "pending", "validated", "rejected"
+  equivalenceRejectedAt             DateTime?
+  equivalenceRejectionReason        String?
+  isSendingFormulaireResidence      Boolean   @default(false)
+  residenceStatus                   String?   // "pending", "validated", "rejected"
+  residenceRejectedAt               DateTime?
+  residenceRejectionReason          String?
+  isSendingPartners                 Boolean   @default(false)
+  partnerStatus                     String?   // "pending", "validated", "rejected"
+  partnerRejectedAt                 DateTime?
+  partnerRejectionReason            String?
+  createdAt                         DateTime  @default(now())
+  updatedAt                         DateTime  @updatedAt
+  messages                          Message[]
+  formSubmissions                   FormSubmission[]
 }
 
 model Admin {

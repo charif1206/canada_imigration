@@ -4,12 +4,13 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { ClientsModule } from './modules/clients/clients.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
-import { SheetsModule } from './modules/sheets/sheets.module';
+// import { SheetsModule } from './modules/sheets/sheets.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { FormsModule } from './modules/forms/forms.module';
 import { PartnersModule } from './modules/partners/partners.module';
+import { ContactModule } from './modules/contact/contact.module';
 
 @Module({
   imports: [
@@ -27,7 +28,8 @@ import { PartnersModule } from './modules/partners/partners.module';
     FormsModule,
     PartnersModule,
     NotificationsModule,
-    SheetsModule,
+    ContactModule,
+    // SheetsModule,
     AdminModule,
   ],
 })

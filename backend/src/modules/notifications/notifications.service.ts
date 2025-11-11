@@ -236,4 +236,33 @@ export class NotificationsService {
       throw error;
     }
   }
+
+  /**
+   * Generic method to send any email
+   * @param options - Email options (to, subject, html, etc.)
+   */
+  async sendEmail(options: {
+    to: string;
+    subject: string;
+    html: string;
+    replyTo?: string;
+  }) {
+    this.logger.log(`Sending email to ${options.to}`);
+
+    try {
+      await this.transporter.sendMail({
+        from: process.env.MAIL_FROM || '"Canada Immigration" <noreply@immigration.ca>',
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        replyTo: options.replyTo,
+      });
+
+      this.logger.log(`✅ Email sent successfully to ${options.to}`);
+      return { success: true };
+    } catch (error) {
+      this.logger.error(`❌ Failed to send email to ${options.to}:`, error);
+      throw error;
+    }
+  }
 }
