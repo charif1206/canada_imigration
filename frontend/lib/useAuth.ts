@@ -8,6 +8,7 @@ export function useAuth() {
   const user = useAuthStore((state) => state.user);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const logout = useAuthStore((state) => state.logout);
+  const refreshUser = useAuthStore((state) => state.refreshUser);
 
   // Compute client from user
   const authState = useMemo(() => ({
@@ -26,5 +27,6 @@ export function useAuth() {
   return {
     ...authState,
     logout: handleLogout,
+    refreshAuth: refreshUser,
   };
 }

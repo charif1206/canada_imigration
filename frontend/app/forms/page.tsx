@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSubmitEquivalenceForm, useSubmitResidenceForm } from '../../lib/hooks/useForms';
 import { toast } from 'react-toastify';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { useAuth } from '@/lib/useAuth';
-import { checkFormStatus } from '@/lib/utils/formStatus';
 
 const InputField: React.FC<{ label: string; type: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; required?: boolean; placeholder?: string; error?: string; }> = ({ label, type, name, value, onChange, required = true, placeholder, error }) => (
     <div>
@@ -406,23 +405,70 @@ const FormStatusDisplay: React.FC<{
 };
 
 const FormsPage: React.FC = () => {
-    const { client } = useAuth();
+    const { client, refreshAuth } = useAuth();
+    
+    // Temporary state to show pending immediately after submission (persisted in localStorage)
+    const [isSendingTemporarilyEquivalence, setIsSendingTemporarilyEquivalence] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('temp_sending_equivalence') === 'true';
+        }
+        return false;
+    });
+    
+    const [isSendingTemporarilyResidence, setIsSendingTemporarilyResidence] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('temp_sending_residence') === 'true';
+        }
+        return false;
+    });
+    
+    // Clear temporary flags when backend confirms submission
+    useEffect(() => {
+        if (isSendingTemporarilyEquivalence && client?.isSendingFormulaireEquivalence) {
+            localStorage.removeItem('temp_sending_equivalence');
+        }
+        if (isSendingTemporarilyResidence && client?.isSendingFormulaireResidence) {
+            localStorage.removeItem('temp_sending_residence');
+        }
+    }, [client?.isSendingFormulaireEquivalence, client?.isSendingFormulaireResidence, isSendingTemporarilyEquivalence, isSendingTemporarilyResidence]);
+    
+    // Auto-refresh every 5 minutes to check for status updates
+    useEffect(() => {
+        const interval = setInterval(() => {
+            refreshAuth();
+        }, 5 * 60 * 1000); // 5 minutes
+
+        return () => clearInterval(interval);
+    }, [refreshAuth]);
     
     const handleEquivalenceSubmit = () => {
+        // Set temporary flag in localStorage before reload
+        localStorage.setItem('temp_sending_equivalence', 'true');
+        setIsSendingTemporarilyEquivalence(true);
         window.scrollTo(0, 0);
         // Reload to fetch updated user data
-        window.location.reload();
+        setTimeout(() => {
+            window.location.reload();
+        }, 500);
     };
 
     const handleResidenceSubmit = () => {
+        // Set temporary flag in localStorage before reload
+        localStorage.setItem('temp_sending_residence', 'true');
+        setIsSendingTemporarilyResidence(true);
         window.scrollTo(0, 0);
         // Reload to fetch updated user data
-        window.location.reload();
+        setTimeout(() => {
+            window.location.reload();
+        }, 500);
     };
     
-    // Check form status using the helper
-    const equivalenceCheck = checkFormStatus(client, 'equivalence');
-    const residenceCheck = checkFormStatus(client, 'residence');
+    // Check if forms can be resubmitted based on rejection time
+    const canResubmitEquivalence = client?.equivalenceStatus !== 'rejected' || 
+        (client?.equivalenceRejectedAt && calculateTimeRemaining(client.equivalenceRejectedAt).canResubmit);
+    
+    const canResubmitResidence = client?.residenceStatus !== 'rejected' || 
+        (client?.residenceRejectedAt && calculateTimeRemaining(client.residenceRejectedAt).canResubmit);
 
     return (
         <ProtectedRoute>
@@ -434,16 +480,16 @@ const FormsPage: React.FC = () => {
                     </div>
                     
                     <FormSection id="equivalence" title="🎓 Formulaire Équivalence de diplôme" subtitle="Fournissez les informations nécessaires pour la demande d&apos;équivalence.">
-                        {!equivalenceCheck.canSubmit ? (
+                        {(client?.isSendingFormulaireEquivalence && !canResubmitEquivalence) || isSendingTemporarilyEquivalence ? (
                             <FormStatusDisplay 
-                                status={client?.equivalenceStatus || null}
+                                status={isSendingTemporarilyEquivalence ? 'pending' : (client?.equivalenceStatus || null)}
                                 rejectedAt={client?.equivalenceRejectedAt || null}
                                 rejectionReason={client?.equivalenceRejectionReason || null}
                                 formTitle="Formulaire d'équivalence"
                             />
                         ) : (
                             <>
-                                {client?.equivalenceStatus === 'rejected' && (
+                                {client?.equivalenceStatus === 'rejected' && canResubmitEquivalence && (
                                     <div className="mb-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
                                         <p className="text-sm text-yellow-700">
                                             ℹ️ Votre précédente soumission a été rejetée. Vous pouvez maintenant soumettre à nouveau le formulaire avec les corrections nécessaires.
@@ -456,16 +502,16 @@ const FormsPage: React.FC = () => {
                     </FormSection>
 
                     <FormSection id="residence" title="🧩 Formulaire Résidence Permanente (CSQ et Fédéral)" subtitle="Mettez à jour votre dossier de résidence permanente avec nous.">
-                        {!residenceCheck.canSubmit ? (
+                        {(client?.isSendingFormulaireResidence && !canResubmitResidence) || isSendingTemporarilyResidence ? (
                             <FormStatusDisplay 
-                                status={client?.residenceStatus || null}
+                                status={isSendingTemporarilyResidence ? 'pending' : (client?.residenceStatus || null)}
                                 rejectedAt={client?.residenceRejectedAt || null}
                                 rejectionReason={client?.residenceRejectionReason || null}
                                 formTitle="Formulaire de résidence"
                             />
                         ) : (
                             <>
-                                {client?.residenceStatus === 'rejected' && (
+                                {client?.residenceStatus === 'rejected' && canResubmitResidence && (
                                     <div className="mb-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
                                         <p className="text-sm text-yellow-700">
                                             ℹ️ Votre précédente soumission a été rejetée. Vous pouvez maintenant soumettre à nouveau le formulaire avec les corrections nécessaires.

@@ -44,6 +44,7 @@ interface AuthState {
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   setLoading: (loading: boolean) => void;
+  refreshUser: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -89,6 +90,27 @@ export const useAuthStore = create<AuthState>()(
         })),
 
       setLoading: (loading) => set({ isLoading: loading }),
+
+      refreshUser: async () => {
+        const state = useAuthStore.getState();
+        if (!state.token) return;
+
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/clients/profile`, {
+            headers: {
+              'Authorization': `Bearer ${state.token}`,
+            },
+          });
+
+          if (response.ok) {
+            const userData = await response.json();
+            set({ user: userData });
+            console.log('✅ User data refreshed');
+          }
+        } catch (error) {
+          console.error('❌ Failed to refresh user data:', error);
+        }
+      },
     }),
     {
       name: 'auth-storage',
