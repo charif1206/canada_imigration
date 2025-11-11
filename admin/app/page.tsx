@@ -9,13 +9,10 @@ import {
   useAllClients,
   usePendingClients,
   useValidatedClients,
-  useQuickValidateClient,
 } from '@/src/hooks/useClients';
-import { useAllForms } from '@/src/hooks/useForms';
-import { useAllPartners } from '@/src/hooks/usePartners';
 import FormValidationModal from '@/src/components/FormValidationModal';
 
-type TabType = 'all' | 'pending' | 'validated' | 'forms' | 'partners';
+type TabType = 'pending-partner' | 'pending-residence' | 'pending-equivalence' | 'validated' | 'all-clients';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -24,7 +21,7 @@ export default function AdminDashboard() {
   const hasHydrated = useAuthStore((state) => state._hasHydrated);
   const logout = useLogout();
   
-  const [activeTab, setActiveTab] = useState<TabType>('pending');
+  const [activeTab, setActiveTab] = useState<TabType>('pending-partner');
   const [currentPage, setCurrentPage] = useState(1);
   const [formModalState, setFormModalState] = useState<{
     isOpen: boolean;
@@ -39,9 +36,19 @@ export default function AdminDashboard() {
   const { data: allClientsData, isLoading: loadingAll } = useAllClients(currentPage);
   const { data: pendingClients, isLoading: loadingPending, refetch: refetchPending } = usePendingClients();
   const { data: validatedClients, isLoading: loadingValidated } = useValidatedClients();
-  const { data: formsData, isLoading: loadingForms } = useAllForms();
-  const { data: partnersData, isLoading: loadingPartners } = useAllPartners();
-  const quickValidate = useQuickValidateClient();
+
+  // Filter clients by form type
+  const pendingPartnerClients = pendingClients?.filter(
+    (client) => client.isSendingPartners && client.partnerStatus === 'pending'
+  ) || [];
+  
+  const pendingResidenceClients = pendingClients?.filter(
+    (client) => client.isSendingFormulaireResidence && client.residenceStatus === 'pending'
+  ) || [];
+  
+  const pendingEquivalenceClients = pendingClients?.filter(
+    (client) => client.isSendingFormulaireEquivalence && client.equivalenceStatus === 'pending'
+  ) || [];
 
   // Check authentication and redirect if needed - ONLY after hydration
   useEffect(() => {
@@ -49,10 +56,6 @@ export default function AdminDashboard() {
       router.push('/login');
     }
   }, [hasHydrated, isAuthenticated, router]);
-
-  const handleValidateClick = (clientId: string) => {
-    quickValidate.mutate(clientId);
-  };
 
   const handleFormModalOpen = (
     clientId: string,
@@ -120,43 +123,46 @@ export default function AdminDashboard() {
 
   const stats = {
     totalClients: allClientsData?.pagination.total || 0,
-    pendingClients: pendingClients?.length || 0,
+    pendingPartner: pendingPartnerClients.length,
+    pendingResidence: pendingResidenceClients.length,
+    pendingEquivalence: pendingEquivalenceClients.length,
     validatedClients: validatedClients?.length || 0,
-    totalForms: formsData?.length || 0,
-    totalPartners: partnersData?.length || 0,
   };
 
   const tabs = [
-    { id: 'pending' as TabType, label: '⏳ Pending Validation', count: stats.pendingClients },
+    { id: 'pending-partner' as TabType, label: '🤝 Pending Partner', count: stats.pendingPartner },
+    { id: 'pending-residence' as TabType, label: '🏠 Pending Residence', count: stats.pendingResidence },
+    { id: 'pending-equivalence' as TabType, label: '🎓 Pending Equivalence', count: stats.pendingEquivalence },
     { id: 'validated' as TabType, label: '✅ Recently Validated', count: stats.validatedClients },
-    { id: 'all' as TabType, label: '📋 All Clients', count: stats.totalClients },
-    { id: 'forms' as TabType, label: '📝 Form Submissions', count: stats.totalForms },
-    { id: 'partners' as TabType, label: '🤝 Partner Applications', count: stats.totalPartners },
+    { id: 'all-clients' as TabType, label: '📋 All Clients', count: stats.totalClients },
   ];
 
   const renderTable = () => {
-    if (activeTab === 'pending') {
+    // ========================================
+    // TAB 1: PENDING PARTNER APPLICATIONS
+    // ========================================
+    if (activeTab === 'pending-partner') {
       if (loadingPending) {
-        return <div className="text-center py-12 text-gray-500">Loading clients...</div>;
+        return <div className="text-center py-12 text-gray-500">Loading partner applications...</div>;
       }
-      if (!pendingClients || pendingClients.length === 0) {
-        return <div className="text-center py-12 text-gray-500">No pending clients</div>;
+      if (pendingPartnerClients.length === 0) {
+        return <div className="text-center py-12 text-gray-500">No pending partner applications</div>;
       }
       return (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-yellow-600 text-white">
+              <tr className="bg-green-600 text-white">
                 <th className="px-4 py-3 text-left">Name</th>
                 <th className="px-4 py-3 text-left">Email</th>
                 <th className="px-4 py-3 text-left">Passport</th>
                 <th className="px-4 py-3 text-left">Nationality</th>
-                <th className="px-4 py-3 text-left">Date</th>
+                <th className="px-4 py-3 text-left">Submitted Date</th>
                 <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {pendingClients.map((client: any) => (
+              {pendingPartnerClients.map((client) => (
                 <tr key={client.id} className="border-b hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-4 font-medium">{client.name}</td>
                   <td className="px-4 py-4">{client.email}</td>
@@ -164,77 +170,19 @@ export default function AdminDashboard() {
                   <td className="px-4 py-4">{client.nationality || 'N/A'}</td>
                   <td className="px-4 py-4">{formatDate(client.createdAt)}</td>
                   <td className="px-4 py-4">
-                    <div className="flex flex-col gap-2">
-                      {/* Client Validation Actions */}
-                      <div className="flex gap-2">
-                        <button
-                          className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm transition-colors font-medium"
-                          onClick={() => handleViewDetails('client', client.id)}
-                        >
-                          👁️ Details
-                        </button>
-                        <button
-                          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm transition-colors font-medium"
-                          onClick={() => handleValidateClick(client.id)}
-                          disabled={quickValidate.isPending}
-                        >
-                          {quickValidate.isPending ? '⏳' : '✓ Validate'}
-                        </button>
-                      </div>
-                      
-                      {/* Form Submission Validation Buttons */}
-                      {(client.isSendingFormulaireEquivalence || client.isSendingFormulaireResidence || client.isSendingPartners) && (
-                        <div className="flex gap-2 mt-1 pt-2 border-t border-gray-200">
-                          {client.isSendingFormulaireEquivalence && (
-                            <button
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                                client.equivalenceStatus === 'pending'
-                                  ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
-                                  : client.equivalenceStatus === 'validated'
-                                  ? 'bg-green-500 text-white cursor-not-allowed'
-                                  : 'bg-purple-500 hover:bg-purple-600 text-white'
-                              }`}
-                              onClick={() => handleFormModalOpen(client.id, 'equivalence')}
-                              disabled={client.equivalenceStatus === 'validated'}
-                              title={client.equivalenceStatus === 'validated' ? 'Already validated' : 'View equivalence form'}
-                            >
-                              🎓 Equiv.
-                            </button>
-                          )}
-                          {client.isSendingFormulaireResidence && (
-                            <button
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                                client.residenceStatus === 'pending'
-                                  ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
-                                  : client.residenceStatus === 'validated'
-                                  ? 'bg-green-500 text-white cursor-not-allowed'
-                                  : 'bg-purple-500 hover:bg-purple-600 text-white'
-                              }`}
-                              onClick={() => handleFormModalOpen(client.id, 'residence')}
-                              disabled={client.residenceStatus === 'validated'}
-                              title={client.residenceStatus === 'validated' ? 'Already validated' : 'View residence form'}
-                            >
-                              🧩 Resid.
-                            </button>
-                          )}
-                          {client.isSendingPartners && (
-                            <button
-                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                                client.partnerStatus === 'pending'
-                                  ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
-                                  : client.partnerStatus === 'validated'
-                                  ? 'bg-green-500 text-white cursor-not-allowed'
-                                  : 'bg-purple-500 hover:bg-purple-600 text-white'
-                              }`}
-                              onClick={() => handleFormModalOpen(client.id, 'partner')}
-                              disabled={client.partnerStatus === 'validated'}
-                              title={client.partnerStatus === 'validated' ? 'Already validated' : 'View partner application'}
-                            >
-                              🤝 Partner
-                            </button>
-                          )}
-                        </div>
-                      )}
+                    <div className="flex gap-2">
+                      <button
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
+                        onClick={() => handleFormModalOpen(client.id, 'partner')}
+                      >
+                        👁️ View Data
+                      </button>
+                      <button
+                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
+                        onClick={() => handleFormModalOpen(client.id, 'partner')}
+                      >
+                        ✓ Validate
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -245,9 +193,122 @@ export default function AdminDashboard() {
       );
     }
 
+    // ========================================
+    // TAB 2: PENDING RESIDENCE APPLICATIONS
+    // ========================================
+    if (activeTab === 'pending-residence') {
+      if (loadingPending) {
+        return <div className="text-center py-12 text-gray-500">Loading residence applications...</div>;
+      }
+      if (pendingResidenceClients.length === 0) {
+        return <div className="text-center py-12 text-gray-500">No pending residence applications</div>;
+      }
+      return (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-indigo-600 text-white">
+                <th className="px-4 py-3 text-left">Name</th>
+                <th className="px-4 py-3 text-left">Email</th>
+                <th className="px-4 py-3 text-left">Passport</th>
+                <th className="px-4 py-3 text-left">Nationality</th>
+                <th className="px-4 py-3 text-left">Submitted Date</th>
+                <th className="px-4 py-3 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingResidenceClients.map((client) => (
+                <tr key={client.id} className="border-b hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-4 font-medium">{client.name}</td>
+                  <td className="px-4 py-4">{client.email}</td>
+                  <td className="px-4 py-4">{client.passportNumber || 'N/A'}</td>
+                  <td className="px-4 py-4">{client.nationality || 'N/A'}</td>
+                  <td className="px-4 py-4">{formatDate(client.createdAt)}</td>
+                  <td className="px-4 py-4">
+                    <div className="flex gap-2">
+                      <button
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
+                        onClick={() => handleFormModalOpen(client.id, 'residence')}
+                      >
+                        👁️ View Data
+                      </button>
+                      <button
+                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
+                        onClick={() => handleFormModalOpen(client.id, 'residence')}
+                      >
+                        ✓ Validate
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    // ========================================
+    // TAB 3: PENDING EQUIVALENCE APPLICATIONS
+    // ========================================
+    if (activeTab === 'pending-equivalence') {
+      if (loadingPending) {
+        return <div className="text-center py-12 text-gray-500">Loading equivalence applications...</div>;
+      }
+      if (pendingEquivalenceClients.length === 0) {
+        return <div className="text-center py-12 text-gray-500">No pending equivalence applications</div>;
+      }
+      return (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-purple-600 text-white">
+                <th className="px-4 py-3 text-left">Name</th>
+                <th className="px-4 py-3 text-left">Email</th>
+                <th className="px-4 py-3 text-left">Passport</th>
+                <th className="px-4 py-3 text-left">Nationality</th>
+                <th className="px-4 py-3 text-left">Submitted Date</th>
+                <th className="px-4 py-3 text-left">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pendingEquivalenceClients.map((client) => (
+                <tr key={client.id} className="border-b hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-4 font-medium">{client.name}</td>
+                  <td className="px-4 py-4">{client.email}</td>
+                  <td className="px-4 py-4">{client.passportNumber || 'N/A'}</td>
+                  <td className="px-4 py-4">{client.nationality || 'N/A'}</td>
+                  <td className="px-4 py-4">{formatDate(client.createdAt)}</td>
+                  <td className="px-4 py-4">
+                    <div className="flex gap-2">
+                      <button
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
+                        onClick={() => handleFormModalOpen(client.id, 'equivalence')}
+                      >
+                        👁️ View Data
+                      </button>
+                      <button
+                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
+                        onClick={() => handleFormModalOpen(client.id, 'equivalence')}
+                      >
+                        ✓ Validate
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    // ========================================
+    // TAB 4: RECENTLY VALIDATED CLIENTS
+    // ========================================
     if (activeTab === 'validated') {
       if (loadingValidated) {
-        return <div className="text-center py-12 text-gray-500">Loading clients...</div>;
+        return <div className="text-center py-12 text-gray-500">Loading validated clients...</div>;
       }
       if (!validatedClients || validatedClients.length === 0) {
         return <div className="text-center py-12 text-gray-500">No validated clients yet</div>;
@@ -259,32 +320,54 @@ export default function AdminDashboard() {
               <tr className="bg-green-600 text-white">
                 <th className="px-4 py-3 text-left">Name</th>
                 <th className="px-4 py-3 text-left">Email</th>
-                <th className="px-4 py-3 text-left">Passport</th>
-                <th className="px-4 py-3 text-left">Nationality</th>
+                <th className="px-4 py-3 text-left">Validated Type</th>
                 <th className="px-4 py-3 text-left">Validated At</th>
-                <th className="px-4 py-3 text-left">Validated By</th>
+                <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {validatedClients.map((client) => (
-                <tr key={client.id} className="border-b hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-4 font-medium">{client.name}</td>
-                  <td className="px-4 py-4">{client.email}</td>
-                  <td className="px-4 py-4">{client.passportNumber || 'N/A'}</td>
-                  <td className="px-4 py-4">{client.nationality || 'N/A'}</td>
-                  <td className="px-4 py-4">
-                    {client.validatedAt ? formatDate(client.validatedAt) : 'N/A'}
-                  </td>
-                  <td className="px-4 py-4">{client.validatedBy || 'N/A'}</td>
-                </tr>
-              ))}
+              {validatedClients.map((client) => {
+                // Determine which form type was validated
+                const validatedTypes = [];
+                if (client.equivalenceStatus === 'validated') validatedTypes.push('🎓 Equivalence');
+                if (client.residenceStatus === 'validated') validatedTypes.push('🏠 Residence');
+                if (client.partnerStatus === 'validated') validatedTypes.push('🤝 Partner');
+                
+                return (
+                  <tr key={client.id} className="border-b hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-4 font-medium">{client.name}</td>
+                    <td className="px-4 py-4">{client.email}</td>
+                    <td className="px-4 py-4">
+                      <div className="flex flex-wrap gap-1">
+                        {validatedTypes.map((type, idx) => (
+                          <span key={idx} className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                            {type}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">{formatDate(client.updatedAt)}</td>
+                    <td className="px-4 py-4">
+                      <button
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
+                        onClick={() => handleViewDetails('client', client.id)}
+                      >
+                        👁️ View Details
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       );
     }
 
-    if (activeTab === 'all') {
+    // ========================================
+    // TAB 5: ALL CLIENTS
+    // ========================================
+    if (activeTab === 'all-clients') {
       if (loadingAll) {
         return <div className="text-center py-12 text-gray-500">Loading clients...</div>;
       }
@@ -296,13 +379,12 @@ export default function AdminDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-purple-600 text-white">
+                <tr className="bg-slate-600 text-white">
                   <th className="px-4 py-3 text-left">Name</th>
                   <th className="px-4 py-3 text-left">Email</th>
                   <th className="px-4 py-3 text-left">Passport</th>
                   <th className="px-4 py-3 text-left">Nationality</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Date</th>
+                  <th className="px-4 py-3 text-left">Registered Date</th>
                   <th className="px-4 py-3 text-left">Actions</th>
                 </tr>
               </thead>
@@ -313,28 +395,14 @@ export default function AdminDashboard() {
                     <td className="px-4 py-4">{client.email}</td>
                     <td className="px-4 py-4">{client.passportNumber || 'N/A'}</td>
                     <td className="px-4 py-4">{client.nationality || 'N/A'}</td>
-                    <td className="px-4 py-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm font-bold ${
-                          client.isValidated
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}
-                      >
-                        {client.isValidated ? 'Validated' : 'Pending'}
-                      </span>
-                    </td>
                     <td className="px-4 py-4">{formatDate(client.createdAt)}</td>
                     <td className="px-4 py-4">
-                      {!client.isValidated && (
-                        <button
-                          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
-                          onClick={() => handleValidateClick(client.id)}
-                          disabled={quickValidate.isPending}
-                        >
-                          {quickValidate.isPending ? '⏳...' : 'Validate'}
-                        </button>
-                      )}
+                      <button
+                        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
+                        onClick={() => handleViewDetails('client', client.id)}
+                      >
+                        👁️ View Data
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -378,11 +446,11 @@ export default function AdminDashboard() {
                           )}
                           <button
                             onClick={() => handlePageChange(page)}
-                            className={`px-4 py-2 rounded-lg border font-medium transition-colors ${
-                              currentPage === page
-                                ? 'bg-purple-600 text-white border-purple-600'
-                                : 'bg-white text-gray-700 hover:bg-gray-50'
-                            }`}
+                          className={`px-4 py-2 rounded-lg border font-medium transition-colors ${
+                            currentPage === page
+                              ? 'bg-slate-600 text-white border-slate-600'
+                              : 'bg-white text-gray-700 hover:bg-gray-50'
+                          }`}
                           >
                             {page}
                           </button>
@@ -405,99 +473,8 @@ export default function AdminDashboard() {
       );
     }
 
-    if (activeTab === 'forms') {
-      if (loadingForms) {
-        return <div className="text-center py-12 text-gray-500">Loading forms...</div>;
-      }
-      if (!formsData || formsData.length === 0) {
-        return <div className="text-center py-12 text-gray-500">No form submissions yet</div>;
-      }
-      return (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-blue-600 text-white">
-                <th className="px-4 py-3 text-left">Type</th>
-                <th className="px-4 py-3 text-left">Client Name</th>
-                <th className="px-4 py-3 text-left">Email</th>
-                <th className="px-4 py-3 text-left">Submitted</th>
-                <th className="px-4 py-3 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {formsData.map((form) => (
-                <tr key={form.id} className="border-b hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-4">
-                    <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                      form.type === 'EQUIVALENCE'
-                        ? 'bg-purple-100 text-purple-800'
-                        : 'bg-indigo-100 text-indigo-800'
-                    }`}>
-                      {form.type === 'EQUIVALENCE' ? '🎓 Equivalence' : '🏠 Residence'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 font-medium">{form.client?.name || 'N/A'}</td>
-                  <td className="px-4 py-4">{String(form.data.email) || form.client?.email || 'N/A'}</td>
-                  <td className="px-4 py-4">{formatDate(form.createdAt)}</td>
-                  <td className="px-4 py-4">
-                    <button
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
-                      onClick={() => handleViewDetails('form', form.id)}
-                    >
-                      👁️ View
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    }
-
-    if (activeTab === 'partners') {
-      if (loadingPartners) {
-        return <div className="text-center py-12 text-gray-500">Loading partner applications...</div>;
-      }
-      if (!partnersData || partnersData.length === 0) {
-        return <div className="text-center py-12 text-gray-500">No partner applications yet</div>;
-      }
-      return (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-green-600 text-white">
-                <th className="px-4 py-3 text-left">Agency Name</th>
-                <th className="px-4 py-3 text-left">Manager</th>
-                <th className="px-4 py-3 text-left">Email</th>
-                <th className="px-4 py-3 text-left">Phone</th>
-                <th className="px-4 py-3 text-left">Submitted</th>
-                <th className="px-4 py-3 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {partnersData.map((partner) => (
-                <tr key={partner.id} className="border-b hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-4 font-medium">{partner.data.agencyName}</td>
-                  <td className="px-4 py-4">{partner.data.managerName}</td>
-                  <td className="px-4 py-4">{partner.data.email}</td>
-                  <td className="px-4 py-4">{partner.data.phone}</td>
-                  <td className="px-4 py-4">{formatDate(partner.createdAt)}</td>
-                  <td className="px-4 py-4">
-                    <button
-                      className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm transition-colors font-medium"
-                      onClick={() => handleViewDetails('partner', partner.id)}
-                    >
-                      👁️ View
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    }
+    // Default fallback
+    return <div className="text-center py-12 text-gray-500">Select a tab to view data</div>;
   };
 
   return (
@@ -536,18 +513,26 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
           <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-shadow">
-            <h3 className="text-purple-600 text-sm font-semibold uppercase mb-2">Total Clients</h3>
-            <div className="text-4xl font-bold text-gray-800">{stats.totalClients}</div>
+            <h3 className="text-green-600 text-sm font-semibold uppercase mb-2">🤝 Partner</h3>
+            <div className="text-4xl font-bold text-gray-800">{stats.pendingPartner}</div>
           </div>
           <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-shadow">
-            <h3 className="text-purple-600 text-sm font-semibold uppercase mb-2">Pending Validation</h3>
-            <div className="text-4xl font-bold text-gray-800">{stats.pendingClients}</div>
+            <h3 className="text-indigo-600 text-sm font-semibold uppercase mb-2">🏠 Residence</h3>
+            <div className="text-4xl font-bold text-gray-800">{stats.pendingResidence}</div>
           </div>
           <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-shadow">
-            <h3 className="text-purple-600 text-sm font-semibold uppercase mb-2">Validated</h3>
+            <h3 className="text-purple-600 text-sm font-semibold uppercase mb-2">🎓 Equivalence</h3>
+            <div className="text-4xl font-bold text-gray-800">{stats.pendingEquivalence}</div>
+          </div>
+          <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-shadow">
+            <h3 className="text-green-600 text-sm font-semibold uppercase mb-2">✅ Validated</h3>
             <div className="text-4xl font-bold text-gray-800">{stats.validatedClients}</div>
+          </div>
+          <div className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-shadow">
+            <h3 className="text-slate-600 text-sm font-semibold uppercase mb-2">📋 All Clients</h3>
+            <div className="text-4xl font-bold text-gray-800">{stats.totalClients}</div>
           </div>
         </div>
 
