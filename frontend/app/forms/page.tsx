@@ -407,30 +407,43 @@ const FormStatusDisplay: React.FC<{
 const FormsPage: React.FC = () => {
     const { client, refreshAuth } = useAuth();
     
-    // Temporary state to show pending immediately after submission (persisted in localStorage)
+    // Temporary state to show pending immediately after submission (persisted in localStorage per user)
     const [isSendingTemporarilyEquivalence, setIsSendingTemporarilyEquivalence] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('temp_sending_equivalence') === 'true';
+        if (typeof window !== 'undefined' && client?.id) {
+            return localStorage.getItem(`temp_sending_equivalence_${client.id}`) === 'true';
         }
         return false;
     });
     
     const [isSendingTemporarilyResidence, setIsSendingTemporarilyResidence] = useState(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('temp_sending_residence') === 'true';
+        if (typeof window !== 'undefined' && client?.id) {
+            return localStorage.getItem(`temp_sending_residence_${client.id}`) === 'true';
         }
         return false;
     });
     
-    // Clear temporary flags when backend confirms submission
+    // Clear temporary flags when backend confirms submission OR clean up old user flags
     useEffect(() => {
+        if (!client?.id) return;
+        
+        // Clean up flags from other users
+        if (typeof window !== 'undefined') {
+            const allKeys = Object.keys(localStorage);
+            allKeys.forEach(key => {
+                if (key.startsWith('temp_sending_') && !key.includes(client.id)) {
+                    localStorage.removeItem(key);
+                }
+            });
+        }
+        
+        // Remove this user's temporary flags when backend confirms
         if (isSendingTemporarilyEquivalence && client?.isSendingFormulaireEquivalence) {
-            localStorage.removeItem('temp_sending_equivalence');
+            localStorage.removeItem(`temp_sending_equivalence_${client.id}`);
         }
         if (isSendingTemporarilyResidence && client?.isSendingFormulaireResidence) {
-            localStorage.removeItem('temp_sending_residence');
+            localStorage.removeItem(`temp_sending_residence_${client.id}`);
         }
-    }, [client?.isSendingFormulaireEquivalence, client?.isSendingFormulaireResidence, isSendingTemporarilyEquivalence, isSendingTemporarilyResidence]);
+    }, [client?.id, client?.isSendingFormulaireEquivalence, client?.isSendingFormulaireResidence, isSendingTemporarilyEquivalence, isSendingTemporarilyResidence]);
     
     // Auto-refresh every 5 minutes to check for status updates
     useEffect(() => {
@@ -442,8 +455,9 @@ const FormsPage: React.FC = () => {
     }, [refreshAuth]);
     
     const handleEquivalenceSubmit = () => {
-        // Set temporary flag in localStorage before reload
-        localStorage.setItem('temp_sending_equivalence', 'true');
+        if (!client?.id) return;
+        // Set temporary flag in localStorage before reload (user-specific)
+        localStorage.setItem(`temp_sending_equivalence_${client.id}`, 'true');
         setIsSendingTemporarilyEquivalence(true);
         window.scrollTo(0, 0);
         // Reload to fetch updated user data
@@ -453,8 +467,9 @@ const FormsPage: React.FC = () => {
     };
 
     const handleResidenceSubmit = () => {
-        // Set temporary flag in localStorage before reload
-        localStorage.setItem('temp_sending_residence', 'true');
+        if (!client?.id) return;
+        // Set temporary flag in localStorage before reload (user-specific)
+        localStorage.setItem(`temp_sending_residence_${client.id}`, 'true');
         setIsSendingTemporarilyResidence(true);
         window.scrollTo(0, 0);
         // Reload to fetch updated user data

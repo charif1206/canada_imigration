@@ -93,6 +93,16 @@ export class AdminController {
     return this.adminService.validateFormSubmission(clientId, 'residence', 'rejected', reason);
   }
 
+  @Patch('clients/:clientId/forms/partner/validate')
+  async validatePartnerForm(@Param('clientId') clientId: string) {
+    return this.adminService.validateFormSubmission(clientId, 'partner', 'validated');
+  }
+
+  @Patch('clients/:clientId/forms/partner/reject')
+  async rejectPartnerForm(@Param('clientId') clientId: string, @Body('reason') reason: string) {
+    return this.adminService.validateFormSubmission(clientId, 'partner', 'rejected', reason);
+  }
+
   @Get('clients/:clientId/forms/:formType')
   async getClientFormSubmission(@Param('clientId') clientId: string, @Param('formType') formType: string) {
     return this.adminService.getClientFormSubmission(clientId, formType);

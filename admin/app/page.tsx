@@ -81,9 +81,8 @@ export default function AdminDashboard() {
 
   const handleViewDetails = (type: 'client' | 'form' | 'partner', id: string) => {
     if (type === 'client') {
-      // For clients, we can keep the modal or navigate to a detail page
-      // For now, let's navigate to details page for consistency
-      router.push(`/details?type=form&id=${id}`);
+      // For all clients tab, view client details
+      router.push(`/details?type=client&id=${id}`);
     } else if (type === 'form') {
       router.push(`/details?type=form&id=${id}`);
     } else if (type === 'partner') {

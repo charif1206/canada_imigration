@@ -27,8 +27,33 @@ const PartnersPage: React.FC = () => {
     const formRef = useRef<HTMLDivElement>(null);
     const { client, refreshAuth, isAuthenticated } = useAuth();
     
-    // Temporary state to show pending immediately after submission
-    const [isSendingTemporarilyPartner, setIsSendingTemporarilyPartner] = useState(false);
+    // Temporary state to show pending immediately after submission (persisted in localStorage per user)
+    const [isSendingTemporarilyPartner, setIsSendingTemporarilyPartner] = useState(() => {
+        if (typeof window !== 'undefined' && client?.id) {
+            return localStorage.getItem(`temp_sending_partner_${client.id}`) === 'true';
+        }
+        return false;
+    });
+    
+    // Clear temporary flags when backend confirms submission OR clean up old user flags
+    useEffect(() => {
+        if (!client?.id) return;
+        
+        // Clean up flags from other users
+        if (typeof window !== 'undefined') {
+            const allKeys = Object.keys(localStorage);
+            allKeys.forEach(key => {
+                if (key.startsWith('temp_sending_partner_') && !key.includes(client.id)) {
+                    localStorage.removeItem(key);
+                }
+            });
+        }
+        
+        // Remove this user's temporary flag when backend confirms
+        if (isSendingTemporarilyPartner && client?.isSendingPartners) {
+            localStorage.removeItem(`temp_sending_partner_${client.id}`);
+        }
+    }, [client?.id, client?.isSendingPartners, isSendingTemporarilyPartner]);
     
     // Auto-refresh every 5 minutes to check for status updates
     useEffect(() => {
@@ -58,7 +83,11 @@ const PartnersPage: React.FC = () => {
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (!client?.id) return;
+        
         setIsSubmitting(true);
+        // Set temporary flag in localStorage before submission (user-specific)
+        localStorage.setItem(`temp_sending_partner_${client.id}`, 'true');
         setIsSendingTemporarilyPartner(true);
         
         try {
@@ -77,6 +106,10 @@ const PartnersPage: React.FC = () => {
             console.error('Error submitting partner application:', error);
             const axiosError = error as { response?: { data?: { message?: string } } };
             toast.error(axiosError.response?.data?.message || 'Failed to submit application. Please try again.');
+            // Remove temporary flag on error
+            if (client?.id) {
+                localStorage.removeItem(`temp_sending_partner_${client.id}`);
+            }
             setIsSendingTemporarilyPartner(false);
         } finally {
             setIsSubmitting(false);
