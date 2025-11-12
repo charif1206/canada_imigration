@@ -408,6 +408,7 @@ const FormsPage: React.FC = () => {
     const { client, refreshAuth } = useAuth();
     
     // Temporary state to show pending immediately after submission (persisted in localStorage per user)
+    // Initialize from localStorage based on current user
     const [isSendingTemporarilyEquivalence, setIsSendingTemporarilyEquivalence] = useState(() => {
         if (typeof window !== 'undefined' && client?.id) {
             return localStorage.getItem(`temp_sending_equivalence_${client.id}`) === 'true';

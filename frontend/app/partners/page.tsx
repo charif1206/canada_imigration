@@ -4,6 +4,7 @@ import React, { useState, useRef, ChangeEvent, FormEvent, useEffect } from 'reac
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useAuth } from '@/lib/useAuth';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 const CheckListItem: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <li className="flex items-start">
@@ -91,15 +92,25 @@ const PartnersPage: React.FC = () => {
         setIsSendingTemporarilyPartner(true);
         
         try {
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/partners`, formData);
+            // Get the JWT token from localStorage
+            const token = localStorage.getItem('token');
+            
+            const response = await axios.post(
+                `${process.env.NEXT_PUBLIC_API_URL}/partners`, 
+                formData,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }
+            );
             
             if (response.data.success) {
                 toast.success('Partner application submitted successfully!');
                 window.scrollTo(0, 0);
-                // Keep the pending state visible for a moment
+                // Refresh auth to get updated partner status
                 setTimeout(() => {
-                    // In a real scenario, you might want to redirect or refresh
-                    // For now, we'll just keep the pending state
+                    refreshAuth();
                 }, 1000);
             }
         } catch (error) {
@@ -139,12 +150,13 @@ const PartnersPage: React.FC = () => {
         (client?.partnerRejectedAt && calculateTimeRemaining(client.partnerRejectedAt).canResubmit);
 
     return (
-        <div className="py-20" style={{ backgroundColor: '#F4F4F4' }}>
-            <div className="container mx-auto px-4">
-                <div className="text-center mb-16">
-                    <h1 className="text-4xl md:text-5xl font-bold" style={{ color: '#0A2540' }}>🤝 Programme Partenaire pour Agences de Voyages</h1>
-                    <p className="text-lg text-slate-600 mt-4 max-w-3xl mx-auto">Un partenariat gagnant pour accompagner vos clients vers le Canada.</p>
-                </div>
+        <ProtectedRoute>
+            <div className="py-20" style={{ backgroundColor: '#F4F4F4' }}>
+                <div className="container mx-auto px-4">
+                    <div className="text-center mb-16">
+                        <h1 className="text-4xl md:text-5xl font-bold" style={{ color: '#0A2540' }}>🤝 Programme Partenaire pour Agences de Voyages</h1>
+                        <p className="text-lg text-slate-600 mt-4 max-w-3xl mx-auto">Un partenariat gagnant pour accompagner vos clients vers le Canada.</p>
+                    </div>
 
                 {/* Show status message if form already submitted */}
                 {((client?.isSendingPartners && !canResubmitPartner) || isSendingTemporarilyPartner) ? (
@@ -312,8 +324,9 @@ const PartnersPage: React.FC = () => {
                         </div>
                     </>
                 )}
+                </div>
             </div>
-        </div>
+        </ProtectedRoute>
     );
 };
 

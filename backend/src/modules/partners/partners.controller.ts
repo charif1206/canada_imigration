@@ -7,8 +7,10 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { PartnersService } from './partners.service';
 import { PartnerSubmissionDto } from './dto/partner-submission.dto';
 
@@ -18,8 +20,13 @@ export class PartnersController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async submitPartnerApplication(@Body() partnerDto: PartnerSubmissionDto) {
-    return this.partnersService.submitPartnerApplication(partnerDto);
+  @UseGuards(OptionalJwtAuthGuard)
+  async submitPartnerApplication(
+    @Body() partnerDto: PartnerSubmissionDto,
+    @Request() req,
+  ) {
+    const clientId = req.user?.sub; // Get the authenticated client ID if available
+    return this.partnersService.submitPartnerApplication(partnerDto, clientId);
   }
 
   @Get()

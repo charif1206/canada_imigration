@@ -1,53 +1,29 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useSendMessage } from '../../lib/hooks/useMessages';
-import { useAuthStore } from '../../lib/stores/authStore';
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { useSendContactEmail } from '../../lib/hooks/useMessages';
 import { toast } from 'react-toastify';
 
+interface ContactFormData {
+    name: string;
+    email: string;
+    message: string;
+}
+
 const ContactPage: React.FC = () => {
-    const [formData, setFormData] = useState({
-        name: '',
-        email: '',
-        message: '',
-    });
+    const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<ContactFormData>();
+    const sendEmailMutation = useSendContactEmail();
 
-    const { user } = useAuthStore();
-    const sendMessageMutation = useSendMessage();
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
-    };
-
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-
-        // Use React Query mutation to send message
-        sendMessageMutation.mutate(
-            {
-                clientId: user?.id || 'guest', // Use 'guest' if not logged in
-                subject: `Contact from ${formData.name}`,
-                content: `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`,
-            },
-            {
-                onSuccess: () => {
-                    toast.success('✅ Message sent successfully! We will get back to you soon.');
-                    // Reset form
-                    setFormData({
-                        name: '',
-                        email: '',
-                        message: '',
-                    });
-                },
-                onError: (error: any) => {
-                    const errorMessage = error?.message || 'Failed to send message. Please try again.';
-                    toast.error(errorMessage);
-                },
-            }
-        );
+    const onSubmit = async (data: ContactFormData) => {
+        try {
+            await sendEmailMutation.mutateAsync(data);
+            toast.success('✅ Message sent successfully! We will get back to you soon.');
+            reset(); // Reset form after successful submission
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Failed to send message. Please try again.';
+            toast.error(`❌ ${errorMessage}`);
+        }
     };
 
     return (
@@ -62,50 +38,74 @@ const ContactPage: React.FC = () => {
                     {/* Contact Form */}
                     <div className="bg-white p-8 rounded-xl shadow-lg">
                         <h2 className="text-2xl font-bold text-blue-900 mb-6">Envoyer un message</h2>
-                        <form onSubmit={handleSubmit} className="space-y-6">
+                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                             <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nom</label>
+                                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                                    Nom <span className="text-red-500">*</span>
+                                </label>
                                 <input 
                                     type="text" 
-                                    name="name" 
                                     id="name" 
-                                    value={formData.name}
-                                    onChange={handleChange}
-                                    required 
-                                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500" 
+                                    {...register('name', { 
+                                        required: 'Le nom est requis',
+                                        minLength: { value: 2, message: 'Le nom doit contenir au moins 2 caractères' }
+                                    })}
+                                    className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent sm:text-sm ${
+                                        errors.name ? 'border-red-500' : 'border-gray-300'
+                                    }`}
                                 />
+                                {errors.name && (
+                                    <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>
+                                )}
                             </div>
                             <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                                    Email <span className="text-red-500">*</span>
+                                </label>
                                 <input 
                                     type="email" 
-                                    name="email" 
                                     id="email" 
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    required 
-                                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500" 
+                                    {...register('email', { 
+                                        required: 'L\'email est requis',
+                                        pattern: {
+                                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                            message: 'Adresse email invalide'
+                                        }
+                                    })}
+                                    className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent sm:text-sm ${
+                                        errors.email ? 'border-red-500' : 'border-gray-300'
+                                    }`}
                                 />
+                                {errors.email && (
+                                    <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>
+                                )}
                             </div>
                             <div>
-                                <label htmlFor="message" className="block text-sm font-medium text-gray-700">Message</label>
+                                <label htmlFor="message" className="block text-sm font-medium text-gray-700">
+                                    Message <span className="text-red-500">*</span>
+                                </label>
                                 <textarea 
-                                    name="message" 
                                     id="message" 
                                     rows={4} 
-                                    value={formData.message}
-                                    onChange={handleChange}
-                                    required 
-                                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-red-500 focus:border-red-500"
+                                    {...register('message', { 
+                                        required: 'Le message est requis',
+                                        minLength: { value: 10, message: 'Le message doit contenir au moins 10 caractères' }
+                                    })}
+                                    className={`mt-1 block w-full px-3 py-2 bg-white border rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent sm:text-sm ${
+                                        errors.message ? 'border-red-500' : 'border-gray-300'
+                                    }`}
                                 ></textarea>
+                                {errors.message && (
+                                    <p className="mt-1 text-sm text-red-500">{errors.message.message}</p>
+                                )}
                             </div>
                             <div>
                                 <button 
                                     type="submit" 
-                                    disabled={sendMessageMutation.isPending}
+                                    disabled={isSubmitting || sendEmailMutation.isPending}
                                     className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 disabled:bg-red-300 disabled:cursor-not-allowed"
                                 >
-                                    {sendMessageMutation.isPending ? (
+                                    {(isSubmitting || sendEmailMutation.isPending) ? (
                                         <span className="flex items-center justify-center">
                                             <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

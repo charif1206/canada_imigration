@@ -4,6 +4,7 @@ import { CreateMessageDto } from './dto/create-message.dto';
 import { ValidateClientDto } from './dto/validate-client.dto';
 import { ClientRegisterDto } from './dto/client-register.dto';
 import { ClientLoginDto } from './dto/client-login.dto';
+import { SendContactEmailDto } from './dto/send-contact-email.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 @Controller('clients')
@@ -61,6 +62,16 @@ export class ClientsController {
   @HttpCode(HttpStatus.CREATED)
   async createMessage(@Body() createMessageDto: CreateMessageDto) {
     return this.clientsService.createMessage(createMessageDto);
+  }
+
+  /**
+   * Send contact email directly to admin
+   * Public route - no authentication required
+   */
+  @Post('contact-email')
+  @HttpCode(HttpStatus.OK)
+  async sendContactEmail(@Body() contactEmailDto: SendContactEmailDto) {
+    return this.clientsService.sendContactEmail(contactEmailDto);
   }
 
   @Get(':id/messages')

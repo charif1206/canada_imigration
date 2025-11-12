@@ -10,7 +10,7 @@ export class PartnersService {
     private prisma: PrismaService,
   ) {}
 
-  async submitPartnerApplication(data: PartnerSubmissionDto) {
+  async submitPartnerApplication(data: PartnerSubmissionDto, clientId?: string) {
     this.logger.log(`Submitting partner application for: ${data.agencyName}`);
 
     const partnerData = {
@@ -35,8 +35,20 @@ export class PartnersService {
         },
       });
       this.logger.log(`Partner application persisted (id=${saved.id})`);
+      
+      // If clientId provided, update the client record to mark as sending partner form
+      if (clientId) {
+        await this.prisma.client.update({
+          where: { id: clientId },
+          data: {
+            isSendingPartners: true,
+            partnerStatus: 'pending',
+          },
+        });
+        this.logger.log(`Client ${clientId} marked as sending partner application`);
+      }
     } catch (error) {
-      this.logger.warn('Could not save to database, continuing with notifications');
+      this.logger.warn('Could not save to database, continuing with notifications', error);
     }
 
     return {

@@ -20,10 +20,21 @@ interface CreateMessageData {
   content: string;
 }
 
+interface ContactEmailData {
+  name: string;
+  email: string;
+  message: string;
+}
+
 // API Functions
 const messagesApi = {
   sendMessage: async (messageData: CreateMessageData) => {
     const { data } = await axiosInstance.post('/clients/messages', messageData);
+    return data;
+  },
+
+  sendContactEmail: async (contactData: ContactEmailData) => {
+    const { data } = await axiosInstance.post('/clients/contact-email', contactData);
     return data;
   },
 
@@ -45,6 +56,15 @@ export const useSendMessage = () => {
     },
     onError: (error: any) => {
       console.error('Failed to send message:', error);
+    },
+  });
+};
+
+export const useSendContactEmail = () => {
+  return useMutation({
+    mutationFn: messagesApi.sendContactEmail,
+    onError: (error: any) => {
+      console.error('Failed to send contact email:', error);
     },
   });
 };

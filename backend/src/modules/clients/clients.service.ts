@@ -4,6 +4,7 @@ import { CreateMessageDto } from './dto/create-message.dto';
 import { ValidateClientDto } from './dto/validate-client.dto';
 import { ClientRegisterDto } from './dto/client-register.dto';
 import { ClientLoginDto } from './dto/client-login.dto';
+import { SendContactEmailDto } from './dto/send-contact-email.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -247,6 +248,57 @@ export class ClientsService {
     this.logger.log(`Message created: ${message.id} from ${message.client.name}`);
 
     return message;
+  }
+
+  /**
+   * Send contact email directly to admin email
+   */
+  async sendContactEmail(contactEmailDto: SendContactEmailDto) {
+    this.logger.log(`Sending contact email from: ${contactEmailDto.email}`);
+
+    const { name, email, message } = contactEmailDto;
+
+    try {
+      // Send email to admin
+      await this.notificationsService.sendEmail({
+        to: 'abedcharif027@gmail.com',
+        subject: `Contact Form Submission from ${name}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
+            <h2 style="color: #0A2540; border-bottom: 2px solid #DC2626; padding-bottom: 10px;">
+              📧 New Contact Form Submission
+            </h2>
+            
+            <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+              <p style="margin: 10px 0;"><strong>Name:</strong> ${name}</p>
+              <p style="margin: 10px 0;"><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+            </div>
+            
+            <div style="margin: 20px 0;">
+              <h3 style="color: #0A2540; margin-bottom: 10px;">Message:</h3>
+              <div style="padding: 15px; background-color: #ffffff; border-left: 4px solid #DC2626; border-radius: 4px;">
+                <p style="white-space: pre-wrap; line-height: 1.6; color: #333;">${message}</p>
+              </div>
+            </div>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #666; font-size: 12px;">
+              <p>This email was sent from the Canada Immigration contact form.</p>
+              <p>Submitted on: ${new Date().toLocaleString()}</p>
+            </div>
+          </div>
+        `,
+      });
+
+      this.logger.log(`Contact email sent successfully from ${email}`);
+
+      return {
+        success: true,
+        message: 'Your message has been sent successfully! We will get back to you soon.',
+      };
+    } catch (error) {
+      this.logger.error(`Failed to send contact email from ${email}:`, error);
+      throw new BadRequestException('Failed to send email. Please try again later.');
+    }
   }
 
   async getClientMessages(clientId: string) {

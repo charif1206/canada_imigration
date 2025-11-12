@@ -244,21 +244,51 @@ export class AdminService {
       throw new Error(`Client with ID '${clientId}' not found`);
     }
 
-    const formSubmission = await (this.prisma as any).formSubmission.findFirst({
-      where: {
-        clientId: clientId,
-        type: formType.toUpperCase(),
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+    let formSubmission = null;
+
+    if (formType === 'partner') {
+      // For partner, fetch from partnerSubmission table using client's email
+      formSubmission = await (this.prisma as any).partnerSubmission.findFirst({
+        where: {
+          data: {
+            path: ['email'],
+            equals: client.email,
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+      
+      // Extract the data field which contains the actual submission
+      if (formSubmission) {
+        formSubmission = formSubmission.data;
+      }
+    } else {
+      // For equivalence and residence, fetch from formSubmission table
+      formSubmission = await (this.prisma as any).formSubmission.findFirst({
+        where: {
+          clientId: clientId,
+          type: formType.toUpperCase(),
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+      
+      // Extract the data field which contains the actual submission
+      if (formSubmission) {
+        formSubmission = formSubmission.data;
+      }
+    }
 
     return {
       client: {
         id: client.id,
         name: client.name,
         email: client.email,
+        passportNumber: client.passportNumber,
+        nationality: client.nationality,
       },
       formType,
       status: formType === 'equivalence' ? (client as any).equivalenceStatus :
