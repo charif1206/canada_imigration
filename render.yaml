@@ -9,8 +9,8 @@ services:
     region: oregon # Change to your preferred region: oregon, frankfurt, singapore, ohio
     plan: free # or 'starter' for paid plan
     rootDir: backend
-    buildCommand: npm ci && npx prisma generate && npm run build
-    startCommand: npm run start:prod
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && npm run start:prod
     healthCheckPath: /
     envVars:
       - key: NODE_ENV
