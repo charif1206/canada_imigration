@@ -1,13 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useFormById } from '@/src/hooks/useForms';
 import { usePartnerById } from '@/src/hooks/usePartners';
 import { useClientById } from '@/src/hooks/useClients';
 import Link from 'next/link';
 
-export default function DetailsPage() {
+function DetailsPageContent() {
   const searchParams = useSearchParams();
   
   const type = searchParams.get('type'); // 'form', 'partner', or 'client'
@@ -470,5 +470,20 @@ export default function DetailsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function DetailsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading details...</p>
+        </div>
+      </div>
+    }>
+      <DetailsPageContent />
+    </Suspense>
   );
 }

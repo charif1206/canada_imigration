@@ -122,8 +122,7 @@ export type CreateClientFormData = z.infer<typeof createClientSchema>;
 export const validateClientSchema = z.object({
   isValidated: z
     .boolean({
-      required_error: 'Validation status is required.',
-      invalid_type_error: 'Validation status must be true or false.',
+      message: 'Validation status must be true or false.',
     })
     .refine((val) => typeof val === 'boolean', {
       message: 'Validation status must be true or false. Please specify whether the client is validated.',

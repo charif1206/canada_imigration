@@ -137,8 +137,8 @@ export default function ClientDetailsModal({
               <DetailItem label="Last Updated" value={formatDate(client.updatedAt)} />
               {client.isValidated && (
                 <>
-                  <DetailItem label="Validated At" value={formatDate(client.validatedAt)} />
-                  <DetailItem label="Validated By" value={client.validatedBy} />
+                  <DetailItem label="Validated At" value={client.validatedAt ? formatDate(client.validatedAt) : 'N/A'} />
+                  <DetailItem label="Validated By" value={client.validatedBy || 'N/A'} />
                 </>
               )}
             </div>

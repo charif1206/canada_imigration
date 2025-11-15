@@ -104,7 +104,7 @@ export default function AdminDashboard() {
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
-    if (tab === 'all') {
+    if (tab === 'all-clients') {
       setCurrentPage(1);
     }
   };
@@ -336,8 +336,8 @@ export default function AdminDashboard() {
             verificationType: 'Equivalence',
             verificationIcon: '🎓',
             verifiedAt: client.updatedAt,
-            passportNumber: client.passportNumber,
-            nationality: client.nationality,
+            passportNumber: client.passportNumber || undefined,
+            nationality: client.nationality || undefined,
           });
         }
         if (client.residenceStatus === 'validated') {
@@ -349,8 +349,8 @@ export default function AdminDashboard() {
             verificationType: 'Residence',
             verificationIcon: '🏠',
             verifiedAt: client.updatedAt,
-            passportNumber: client.passportNumber,
-            nationality: client.nationality,
+            passportNumber: client.passportNumber || undefined,
+            nationality: client.nationality || undefined,
           });
         }
         if (client.partnerStatus === 'validated') {
@@ -362,8 +362,8 @@ export default function AdminDashboard() {
             verificationType: 'Partner',
             verificationIcon: '🤝',
             verifiedAt: client.updatedAt,
-            passportNumber: client.passportNumber,
-            nationality: client.nationality,
+            passportNumber: client.passportNumber || undefined,
+            nationality: client.nationality || undefined,
           });
         }
       });
