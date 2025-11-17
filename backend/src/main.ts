@@ -7,8 +7,18 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   
   // Enable CORS for frontend communication
+  const allowedOrigins = [
+    'http://localhost:3001', 
+    'http://localhost:3000',
+    'http://localhost:3002',
+    'https://canada-immigration-frontend-g1d7wgthr.vercel.app',
+    'https://canada-immigration-admin-4cdwbvozc.vercel.app',
+    process.env.FRONTEND_URL,
+    process.env.ADMIN_URL,
+  ].filter(Boolean);
+  
   app.enableCors({
-    origin: ['http://localhost:3001', 'http://localhost:3000','http://localhost:3002'],
+    origin: allowedOrigins,
     credentials: true,
   });
 
