@@ -98,17 +98,14 @@ export const useRegister = () => {
   return useMutation({
     mutationFn: (registerData: ClientRegisterPayload) => registerClient(registerData),
     onSuccess: (data) => {
-      console.log('✅ Registration successful, storing user data in Zustand');
+      console.log('✅ Registration successful, account pending verification');
       
-      // Update Zustand store (token is auto-persisted by Zustand middleware)
-      setAuthState(data.client, data.access_token);
-      console.log('✅ Auth state updated and persisted by Zustand');
+      // Don't auto-login, wait for email verification
+      // Show success message
+      toast.success(`📧 Registration successful! Please check your email to verify your account.`);
       
-      // Show success toast
-      toast.success(`🎉 Welcome to Canada Immigration Services, ${data.client.name}!`);
-      
-      // Redirect to status page
-      router.push('/status');
+      // Redirect to verification confirmation page
+      router.push('/verify-email?registered=true');
     },
     onError: (error: unknown) => {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.';

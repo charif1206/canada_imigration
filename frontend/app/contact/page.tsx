@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useSendContactEmail } from '../../lib/hooks/useMessages';
+import { useAuth } from '@/lib/useAuth';
 import { toast } from 'react-toastify';
 
 interface ContactFormData {
@@ -12,8 +13,19 @@ interface ContactFormData {
 }
 
 const ContactPage: React.FC = () => {
-    const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<ContactFormData>();
+    const { user } = useAuth();
+    const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<ContactFormData>();
     const sendEmailMutation = useSendContactEmail();
+
+    // Pre-fill email if user is logged in
+    useEffect(() => {
+        if (user?.email) {
+            setValue('email', user.email);
+            if (user.name) {
+                setValue('name', user.name);
+            }
+        }
+    }, [user, setValue]);
 
     const onSubmit = async (data: ContactFormData) => {
         try {

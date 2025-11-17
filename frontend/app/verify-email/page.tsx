@@ -9,10 +9,19 @@ import { toast } from 'react-toastify';
 function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'already-verified'>('loading');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'already-verified' | 'awaiting-verification'>('loading');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
+    // Check if user just registered (coming from registration page)
+    const justRegistered = searchParams.get('registered');
+    
+    if (justRegistered === 'true') {
+      setStatus('awaiting-verification');
+      setMessage('Please check your email for the verification link');
+      return;
+    }
+
     const verifyEmail = async () => {
       const token = searchParams.get('token');
 
@@ -51,9 +60,63 @@ function VerifyEmailContent() {
     verifyEmail();
   }, [searchParams]);
 
+  if (status === 'awaiting-verification') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-600 to-purple-600 py-12 px-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
+          <div className="mb-6">
+            <div className="mx-auto w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center">
+              <svg className="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+          </div>
+          
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">
+            📧 Check Your Email
+          </h1>
+          
+          <p className="text-gray-600 mb-6">
+            We&apos;ve sent a verification link to your email address. Please check your inbox (and spam folder) and click the link to activate your account.
+          </p>
+
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 text-left">
+            <p className="text-sm text-blue-800">
+              <strong>Didn&apos;t receive the email?</strong>
+              <br />
+              • Check your spam/junk folder
+              <br />
+              • Make sure you entered the correct email address
+              <br />
+              • Wait a few minutes and refresh your inbox
+              <br />
+              • The verification link is valid for 24 hours
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <Link
+              href="/login"
+              className="w-full inline-block bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 transition"
+            >
+              Go to Login Page
+            </Link>
+            
+            <Link
+              href="/register"
+              className="w-full inline-block bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition"
+            >
+              Register with Different Email
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-purple-600 py-12 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-600 to-purple-600 py-12 px-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
           <div className="mb-6">
             <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center animate-pulse">
@@ -81,7 +144,7 @@ function VerifyEmailContent() {
 
   if (status === 'success') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-600 to-teal-600 py-12 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-green-600 to-teal-600 py-12 px-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
           <div className="mb-6">
             <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
@@ -126,7 +189,7 @@ function VerifyEmailContent() {
 
   if (status === 'already-verified') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-600 to-orange-600 py-12 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-yellow-600 to-orange-600 py-12 px-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
           <div className="mb-6">
             <div className="mx-auto w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
@@ -157,7 +220,7 @@ function VerifyEmailContent() {
 
   // Error state
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-600 to-pink-600 py-12 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-red-600 to-pink-600 py-12 px-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md text-center">
         <div className="mb-6">
           <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
