@@ -84,8 +84,8 @@ export class ClientsController {
    * Public route - no authentication required
    */
   @Get('auth/verify-email')
-  async verifyEmail(@Body() body: { token: string }) {
-    return this.clientsService.verifyEmail(body.token);
+  async verifyEmail(@Query('token') token: string) {
+    return this.clientsService.verifyEmail(token);
   }
 
   /**

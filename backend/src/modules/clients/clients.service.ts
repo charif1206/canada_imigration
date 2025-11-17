@@ -342,6 +342,10 @@ export class ClientsService {
    * Verify client email with token
    */
   async verifyEmail(token: string) {
+    if (!token) {
+      throw new BadRequestException('Verification token is required');
+    }
+
     this.logger.log(`Verifying client email with token: ${token.substring(0, 10)}...`);
 
     const client = await this.prisma.client.findUnique({
