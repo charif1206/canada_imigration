@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EquivalenceFormDto } from './dto/equivalence-form.dto';
 import { ResidenceFormDto } from './dto/residence-form.dto';
+import { PartnerFormDto } from './dto/partner-form.dto';
 
 @Injectable()
 export class FormsService {
@@ -71,6 +72,7 @@ export class FormsService {
       success: true,
       message: 'Equivalence form submitted successfully. We will review your application and contact you soon.',
       formId: `EQUIV-${Date.now()}`,
+      status: 'pending',
     };
   }
 
@@ -126,6 +128,63 @@ export class FormsService {
       success: true,
       message: 'Residence form submitted successfully. We will process your application and contact you soon.',
       formId: `RESID-${Date.now()}`,
+      status: 'pending',
+    };
+  }
+
+  async submitPartnerForm(
+    data: PartnerFormDto,
+    clientId?: string,
+  ) {
+    this.logger.log(`Submitting partner form for: ${data.agencyName}`);
+
+    const formData = {
+      type: 'PARTNER' as const,
+      agencyName: data.agencyName,
+      managerName: data.managerName,
+      email: data.email,
+      phone: data.phone,
+      address: data.address || null,
+      city: data.city || null,
+      clientCount: data.clientCount || null,
+      message: data.message || null,
+      submittedAt: new Date(),
+    };
+
+    // Persist partner form to DB with client relationship
+    try {
+      const saved = await (this.prisma as any).formSubmission.create({
+        data: {
+          clientId: clientId || null,
+          type: 'PARTNER',
+          data: formData,
+          fileUrl: null,
+        },
+      });
+      this.logger.log(`Partner form persisted (id=${saved.id}, clientId=${clientId})`);
+      
+      // Update client's form tracking status
+      if (clientId) {
+        await this.prisma.client.update({
+          where: { id: clientId },
+          data: {
+            isSendingPartners: true,
+            partnerStatus: 'pending',
+            partnerRejectedAt: null,
+            partnerRejectionReason: null,
+          },
+        });
+        this.logger.log(`Updated client ${clientId} partner form status to pending`);
+      }
+    } catch (error) {
+      this.logger.warn('Could not save partner form to database, continuing');
+    }
+
+    return {
+      success: true,
+      message: 'Partner application submitted successfully. We will contact you within 24 hours.',
+      formId: `PARTNER-${Date.now()}`,
+      status: 'pending',
     };
   }
 

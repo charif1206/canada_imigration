@@ -26,14 +26,17 @@ model Client {
   equivalenceStatus                 String?   // "pending", "validated", "rejected"
   equivalenceRejectedAt             DateTime?
   equivalenceRejectionReason        String?
+  //
   isSendingFormulaireResidence      Boolean   @default(false)
   residenceStatus                   String?   // "pending", "validated", "rejected"
   residenceRejectedAt               DateTime?
   residenceRejectionReason          String?
+  //
   isSendingPartners                 Boolean   @default(false)
   partnerStatus                     String?   // "pending", "validated", "rejected"
   partnerRejectedAt                 DateTime?
   partnerRejectionReason            String?
+  //
   createdAt                         DateTime  @default(now())
   updatedAt                         DateTime  @updatedAt
   messages                          Message[]

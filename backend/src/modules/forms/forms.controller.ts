@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { FormsService } from './forms.service';
 import { EquivalenceFormDto } from './dto/equivalence-form.dto';
 import { ResidenceFormDto } from './dto/residence-form.dto';
+import { PartnerFormDto } from './dto/partner-form.dto';
 
 // Configure multer storage
 const storage = diskStorage({
@@ -59,6 +60,17 @@ export class FormsController {
   ) {
     const clientId = req?.user?.sub; // Extract clientId from JWT
     return this.formsService.submitResidenceForm(residenceFormDto, file, clientId);
+  }
+
+  @Post('partner')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  async submitPartnerForm(
+    @Body() partnerFormDto: PartnerFormDto,
+    @Request() req?: any,
+  ) {
+    const clientId = req?.user?.sub; // Extract clientId from JWT
+    return this.formsService.submitPartnerForm(partnerFormDto, clientId);
   }
 
   @Get()

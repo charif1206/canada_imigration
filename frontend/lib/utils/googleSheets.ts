@@ -71,10 +71,10 @@ export const sendPartnerToSheets = async (formData: {
   managerName: string;
   email: string;
   phone: string;
-  address: string;
-  city: string;
-  clientCount: string;
-  message: string;
+  address?: string;
+  city?: string;
+  clientCount?: string;
+  message?: string;
 }): Promise<void> => {
   await sendToGoogleSheets({
     formType: 'partner',

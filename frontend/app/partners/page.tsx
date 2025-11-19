@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useRef, ChangeEvent, FormEvent, useEffect } from 'react';
-import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useAuth } from '@/lib/useAuth';
+import { useSubmitPartnerForm } from '@/lib/hooks/useForms';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 const CheckListItem: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -28,34 +28,6 @@ const PartnersPage: React.FC = () => {
     const formRef = useRef<HTMLDivElement>(null);
     const { client, refreshAuth, isAuthenticated } = useAuth();
     
-    // Temporary state to show pending immediately after submission (persisted in localStorage per user)
-    const [isSendingTemporarilyPartner, setIsSendingTemporarilyPartner] = useState(() => {
-        if (typeof window !== 'undefined' && client?.id) {
-            return localStorage.getItem(`temp_sending_partner_${client.id}`) === 'true';
-        }
-        return false;
-    });
-    
-    // Clear temporary flags when backend confirms submission OR clean up old user flags
-    useEffect(() => {
-        if (!client?.id) return;
-        
-        // Clean up flags from other users
-        if (typeof window !== 'undefined') {
-            const allKeys = Object.keys(localStorage);
-            allKeys.forEach(key => {
-                if (key.startsWith('temp_sending_partner_') && !key.includes(client.id)) {
-                    localStorage.removeItem(key);
-                }
-            });
-        }
-        
-        // Remove this user's temporary flag when backend confirms
-        if (isSendingTemporarilyPartner && client?.isSendingPartners) {
-            localStorage.removeItem(`temp_sending_partner_${client.id}`);
-        }
-    }, [client?.id, client?.isSendingPartners, isSendingTemporarilyPartner]);
-    
     // Auto-refresh every 5 minutes to check for status updates
     useEffect(() => {
         if (isAuthenticated && client) {
@@ -67,7 +39,8 @@ const PartnersPage: React.FC = () => {
         }
     }, [client, refreshAuth, isAuthenticated]);
     
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    // React Query mutation for partner form submission
+    const partnerMutation = useSubmitPartnerForm();
     
     const [formData, setFormData] = useState<FormData>({
         agencyName: '', managerName: '', email: '', phone: '',
@@ -86,45 +59,18 @@ const PartnersPage: React.FC = () => {
         e.preventDefault();
         if (!client?.id) return;
         
-        setIsSubmitting(true);
-        // Set temporary flag in localStorage before submission (user-specific)
-        localStorage.setItem(`temp_sending_partner_${client.id}`, 'true');
-        setIsSendingTemporarilyPartner(true);
-        
-        try {
-            // Get the JWT token from localStorage
-            const token = localStorage.getItem('token');
-            
-            const response = await axios.post(
-                `${process.env.NEXT_PUBLIC_API_URL}/partners`, 
-                formData,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                }
-            );
-            
-            if (response.data.success) {
-                toast.success('Partner application submitted successfully!');
+        // Submit using React Query mutation
+        partnerMutation.mutate(formData, {
+            onSuccess: (data) => {
+                toast.success(data.message || 'Partner application submitted successfully!');
                 window.scrollTo(0, 0);
-                // Refresh auth to get updated partner status
-                setTimeout(() => {
-                    refreshAuth();
-                }, 1000);
-            }
-        } catch (error) {
-            console.error('Error submitting partner application:', error);
-            const axiosError = error as { response?: { data?: { message?: string } } };
-            toast.error(axiosError.response?.data?.message || 'Failed to submit application. Please try again.');
-            // Remove temporary flag on error
-            if (client?.id) {
-                localStorage.removeItem(`temp_sending_partner_${client.id}`);
-            }
-            setIsSendingTemporarilyPartner(false);
-        } finally {
-            setIsSubmitting(false);
-        }
+            },
+            onError: (error: Error & { response?: { data?: { message?: string } } }) => {
+                console.error('Error submitting partner application:', error);
+                const errorMessage = error.response?.data?.message || 'Failed to submit application. Please try again.';
+                toast.error(errorMessage);
+            },
+        });
     };
 
     // Calculate time remaining for rejected partner applications
@@ -158,10 +104,10 @@ const PartnersPage: React.FC = () => {
                         <p className="text-lg text-slate-600 mt-4 max-w-3xl mx-auto">Un partenariat gagnant pour accompagner vos clients vers le Canada.</p>
                     </div>
 
-                {/* Show status message if form already submitted */}
-                {((client?.isSendingPartners && !canResubmitPartner) || isSendingTemporarilyPartner) ? (
+                {/* Show status message based on partnerStatus */}
+                {(client?.partnerStatus && client?.partnerStatus !== 'form' && !canResubmitPartner) ? (
                     <div className="bg-white p-8 rounded-xl shadow-lg max-w-4xl mx-auto">
-                        {(client?.partnerStatus === 'pending' || isSendingTemporarilyPartner) && (
+                        {client?.partnerStatus === 'pending' && (
                             <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-md">
                                 <div className="flex items-center">
                                     <div className="shrink-0">
@@ -313,10 +259,10 @@ const PartnersPage: React.FC = () => {
                                     <div className="md:col-span-2">
                                         <button 
                                             type="submit" 
-                                            disabled={isSubmitting}
+                                            disabled={partnerMutation.isPending}
                                             className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            {isSubmitting ? 'Envoi en cours...' : 'Soumettre mon inscription'}
+                                            {partnerMutation.isPending ? 'Envoi en cours...' : 'Soumettre mon inscription'}
                                         </button>
                                     </div>
                                 </form>
