@@ -10,7 +10,7 @@ services:
     plan: free # or 'starter' for paid plan
     rootDir: backend
     buildCommand: npm install --include=dev && npx prisma generate && npm run build
-    startCommand: npx prisma migrate deploy && npm run start:prod
+    startCommand: npx prisma migrate deploy && npm run create:admin:hamza || true && npm run start:prod
     healthCheckPath: /
     envVars:
       - key: NODE_ENV
