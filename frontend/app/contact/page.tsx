@@ -13,19 +13,19 @@ interface ContactFormData {
 }
 
 const ContactPage: React.FC = () => {
-    const { user } = useAuth();
+    const { client } = useAuth();
     const { register, handleSubmit, reset, setValue, formState: { errors, isSubmitting } } = useForm<ContactFormData>();
     const sendEmailMutation = useSendContactEmail();
 
     // Pre-fill email if user is logged in
     useEffect(() => {
-        if (user?.email) {
-            setValue('email', user.email);
-            if (user.name) {
-                setValue('name', user.name);
+        if (client?.email) {
+            setValue('email', client.email);
+            if (client.name) {
+                setValue('name', client.name);
             }
         }
-    }, [user, setValue]);
+    }, [client, setValue]);
 
     const onSubmit = async (data: ContactFormData) => {
         try {
