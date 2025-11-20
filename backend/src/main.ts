@@ -13,8 +13,11 @@ async function bootstrap() {
     'http://localhost:3002',
     'https://canada-immigration-frontend-g1d7wgthr.vercel.app',
     'https://canada-immigration-admin-4cdwbvozc.vercel.app',
+    'https://canada-immigration-admin.vercel.app',
     'https://canada-immigration-frontend-efapaao7f.vercel.app',
     'https://canada-immigration-admin-p6xxsmfwh.vercel.app',
+    'https://canada-immigration-frontend-84q3zlfvk.vercel.app',
+    'https://canada-immigration-admin-kz5bvzfjy.vercel.app',
     process.env.FRONTEND_URL,
     process.env.ADMIN_URL,
   ].filter(Boolean);
