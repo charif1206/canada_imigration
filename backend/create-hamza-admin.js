@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 async function createHamzaAdmin() {
   try {
-    console.log('🔧 Creating Hamza admin account...');
+    console.log('🔧 Creating Hamza moderator account...');
     
     // Hash password
     const hashedPassword = await bcrypt.hash('hamza1002', 10);
@@ -21,32 +21,37 @@ async function createHamzaAdmin() {
     });
 
     if (existingAdmin) {
-      console.log('\n⚠️  Admin "hamza" already exists!');
+      console.log('\n⚠️  Admin "hamza" already exists - Deleting and recreating...');
       console.log('═══════════════════════════════════════');
-      console.log('Username:', existingAdmin.username);
-      console.log('Email:', existingAdmin.email);
-      console.log('ID:', existingAdmin.id);
+      console.log('Old Username:', existingAdmin.username);
+      console.log('Old Email:', existingAdmin.email);
+      console.log('Old Role:', existingAdmin.role);
       console.log('═══════════════════════════════════════\n');
-      await prisma.$disconnect();
-      process.exit(0);
+      
+      // Delete existing admin
+      await prisma.admin.delete({
+        where: { id: existingAdmin.id }
+      });
+      console.log('✅ Existing account deleted.');
     }
     
-    // Create admin
+    // Create moderator
     const admin = await prisma.admin.create({
       data: {
         username: 'hamza',
         password: hashedPassword,
         email: 'hamza@canada-immigration.com',
-        role: 'admin',
+        role: 'moderator',
         isEmailVerified: true,
       },
     });
     
-    console.log('\n✅ Hamza admin created successfully!');
+    console.log('\n✅ Hamza moderator created successfully!');
     console.log('═══════════════════════════════════════');
     console.log('Username:', admin.username);
     console.log('Password: hamza1002');
     console.log('Email:', admin.email);
+    console.log('Role:', admin.role);
     console.log('ID:', admin.id);
     console.log('═══════════════════════════════════════\n');
     console.log('🚀 You can now login at: https://canada-immigration-admin-kz5bvzfjy.vercel.app/login');
