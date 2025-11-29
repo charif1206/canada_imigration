@@ -22,7 +22,7 @@ export const registerAdminSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   confirmPassword: z.string(),
-  role: z.enum(['admin', 'super-admin', 'moderator']),
+  role: z.enum(['admin', 'moderator']),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ['confirmPassword'],

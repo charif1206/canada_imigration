@@ -542,14 +542,17 @@ export default function AdminDashboard() {
                 <div className="text-right">
                   <p className="text-sm text-purple-100">Welcome back,</p>
                   <p className="font-semibold">{user.username}</p>
+                  <p className="text-xs text-purple-200 capitalize">{user.role}</p>
                 </div>
               )}
-              <Link
-                href="/addadmin"
-                className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors font-medium"
-              >
-                + Add Admin
-              </Link>
+              {user?.role === 'moderator' && (
+                <Link
+                  href="/addadmin"
+                  className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors font-medium"
+                >
+                  + Add Admin
+                </Link>
+              )}
               <button
                 onClick={logout}
                 className="bg-white text-purple-700 px-4 py-2 rounded-lg hover:bg-purple-50 transition-colors font-medium"

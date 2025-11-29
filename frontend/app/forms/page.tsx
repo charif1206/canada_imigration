@@ -437,14 +437,21 @@ const FormsPage: React.FC = () => {
             });
         }
         
-        // Remove this user's temporary flags when backend confirms
+        // Remove this user's temporary flags when backend confirms status is no longer pending
+        // (i.e., when admin has validated or rejected)
         if (isSendingTemporarilyEquivalence && client?.isSendingFormulaireEquivalence) {
-            localStorage.removeItem(`temp_sending_equivalence_${client.id}`);
+            if (client?.equivalenceStatus === 'validated' || client?.equivalenceStatus === 'rejected') {
+                localStorage.removeItem(`temp_sending_equivalence_${client.id}`);
+                setIsSendingTemporarilyEquivalence(false);
+            }
         }
         if (isSendingTemporarilyResidence && client?.isSendingFormulaireResidence) {
-            localStorage.removeItem(`temp_sending_residence_${client.id}`);
+            if (client?.residenceStatus === 'validated' || client?.residenceStatus === 'rejected') {
+                localStorage.removeItem(`temp_sending_residence_${client.id}`);
+                setIsSendingTemporarilyResidence(false);
+            }
         }
-    }, [client?.id, client?.isSendingFormulaireEquivalence, client?.isSendingFormulaireResidence, isSendingTemporarilyEquivalence, isSendingTemporarilyResidence]);
+    }, [client?.id, client?.isSendingFormulaireEquivalence, client?.isSendingFormulaireResidence, client?.equivalenceStatus, client?.residenceStatus, isSendingTemporarilyEquivalence, isSendingTemporarilyResidence]);
     
     // Auto-refresh every 5 minutes to check for status updates
     useEffect(() => {
@@ -461,13 +468,8 @@ const FormsPage: React.FC = () => {
         localStorage.setItem(`temp_sending_equivalence_${client.id}`, 'true');
         setIsSendingTemporarilyEquivalence(true);
         window.scrollTo(0, 0);
-        // Refresh auth data without full page reload
+        // Refresh auth data to get updated status from backend
         await refreshAuth();
-        // Clear temporary flag after auth refresh
-        setTimeout(() => {
-            localStorage.removeItem(`temp_sending_equivalence_${client.id}`);
-            setIsSendingTemporarilyEquivalence(false);
-        }, 1000);
     };
 
     const handleResidenceSubmit = async () => {
@@ -476,13 +478,8 @@ const FormsPage: React.FC = () => {
         localStorage.setItem(`temp_sending_residence_${client.id}`, 'true');
         setIsSendingTemporarilyResidence(true);
         window.scrollTo(0, 0);
-        // Refresh auth data without full page reload
+        // Refresh auth data to get updated status from backend
         await refreshAuth();
-        // Clear temporary flag after auth refresh
-        setTimeout(() => {
-            localStorage.removeItem(`temp_sending_residence_${client.id}`);
-            setIsSendingTemporarilyResidence(false);
-        }, 1000);
     };
     
     // Check if forms can be resubmitted based on rejection time

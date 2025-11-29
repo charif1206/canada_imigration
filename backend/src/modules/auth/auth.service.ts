@@ -75,6 +75,11 @@ export class AuthService implements OnModuleInit {
   async login(loginDto: LoginDto) {
     const admin = await this.validateUser(loginDto.username, loginDto.password);
 
+    // Check if email is verified
+    if (!admin.isEmailVerified) {
+      throw new UnauthorizedException('Email not verified. Please check your email and verify your account before logging in.');
+    }
+
     const payload = {
       username: admin.username,
       sub: admin.id,

@@ -32,16 +32,18 @@ export default function AddAdminPage() {
     },
   });
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated or not a moderator
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!isAuthenticated) {
         router.push('/login');
+      } else if (user?.role !== 'moderator') {
+        router.push('/');
       }
     }, 100);
 
     return () => clearTimeout(timer);
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, user, router]);
 
   // Reset form on success
   useEffect(() => {
@@ -56,13 +58,15 @@ export default function AddAdminPage() {
     registerAdmin(registerData);
   };
 
-  // Loading state while checking authentication
-  if (!isAuthenticated) {
+  // Loading state while checking authentication and permissions
+  if (!isAuthenticated || user?.role !== 'moderator') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Verifying authentication...</p>
+          <p className="mt-4 text-gray-600">
+            {!isAuthenticated ? 'Verifying authentication...' : 'Checking permissions...'}
+          </p>
         </div>
       </div>
     );
@@ -109,7 +113,7 @@ export default function AddAdminPage() {
               </svg>
               <div className="flex-1">
                 <p className="font-medium text-green-900">Admin created successfully!</p>
-                <p className="text-sm text-green-700 mt-1">The new admin account has been created and can now login.</p>
+                <p className="text-sm text-green-700 mt-1">📧 A verification email has been sent. The admin must verify their email before logging in.</p>
               </div>
             </div>
           )}
@@ -243,9 +247,8 @@ export default function AddAdminPage() {
                 }`}
                 disabled={isPending || isSuccess}
               >
-                <option value="admin">Admin</option>
-                <option value="super-admin">Super Admin</option>
-                <option value="moderator">Moderator</option>
+                <option value="admin">Admin - Can view and manage dashboard data</option>
+                <option value="moderator">Moderator - Can manage data and add new admins</option>
               </select>
               {errors.role ? (
                 <p id="role-error" className="mt-2 text-sm text-red-600" role="alert">
@@ -253,7 +256,7 @@ export default function AddAdminPage() {
                 </p>
               ) : (
                 <p id="role-help" className="mt-2 text-sm text-gray-500">
-                  Select the permission level for this account
+                  Admin: Handles dashboard data only | Moderator: Full access including adding admins
                 </p>
               )}
             </div>

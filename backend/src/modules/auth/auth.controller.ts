@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Req, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Req, Patch, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterAdminDto } from './dto/register-admin.dto';
@@ -17,7 +17,7 @@ export class AuthController {
 
   @Post('register')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
+  @Roles('moderator')
   async register(@Body() registerDto: RegisterAdminDto) {
     return this.authService.register(registerDto);
   }
@@ -46,8 +46,8 @@ export class AuthController {
    * Public route - no authentication required
    */
   @Get('verify-email')
-  async verifyEmail(@Body() body: { token: string }) {
-    return this.authService.verifyEmail(body.token);
+  async verifyEmail(@Query('token') token: string) {
+    return this.authService.verifyEmail(token);
   }
 
   /**
