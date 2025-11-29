@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { EquivalenceFormDto } from './dto/equivalence-form.dto';
 import { ResidenceFormDto } from './dto/residence-form.dto';
 import { PartnerFormDto } from './dto/partner-form.dto';
@@ -10,6 +11,7 @@ export class FormsService {
 
   constructor(
     private prisma: PrismaService,
+    private cloudinaryService: CloudinaryService,
   ) {}
 
   async submitEquivalenceForm(
@@ -18,6 +20,24 @@ export class FormsService {
     clientId?: string, // Client ID from JWT
   ) {
     this.logger.log(`Submitting equivalence form for: ${data.email}`);
+
+    let cloudinaryUrl: string | null = null;
+
+    // Upload file to Cloudinary if file exists
+    if (file && file.path) {
+      try {
+        const uploadResult = await this.cloudinaryService.uploadFromPath(
+          file.path,
+          'forms/equivalence',
+        );
+        cloudinaryUrl = uploadResult.secure_url;
+        this.logger.log(`File uploaded to Cloudinary: ${cloudinaryUrl}`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(`Failed to upload to Cloudinary: ${errorMessage}`);
+        // Continue without file if upload fails
+      }
+    }
 
     const formData = {
       type: 'EQUIVALENCE' as const,
@@ -34,7 +54,7 @@ export class FormsService {
       anneeDebut: data.anneeDebut,
       anneeObtentionLicence: data.anneeObtentionLicence,
       anneeObtentionMaster: data.anneeObtentionMaster || null,
-      portfolioUrl: file ? `/uploads/forms/${file.filename}` : null,
+      portfolioUrl: cloudinaryUrl,
       submittedAt: new Date(),
     };
 
@@ -46,12 +66,12 @@ export class FormsService {
           clientId: clientId || null,
           type: 'EQUIVALENCE',
           data: formData,
-          fileUrl: formData.portfolioUrl,
+          fileUrl: cloudinaryUrl,
         },
       });
       this.logger.log(`Equivalence form persisted (id=${saved.id}, clientId=${clientId})`);
       
-      // Update client's form tracking status
+      // Update client's form tracking status and save folder URL
       if (clientId) {
         await this.prisma.client.update({
           where: { id: clientId },
@@ -60,9 +80,10 @@ export class FormsService {
             equivalenceStatus: 'pending',
             equivalenceRejectedAt: null,
             equivalenceRejectionReason: null,
+            folderEquivalence: cloudinaryUrl,
           },
         });
-        this.logger.log(`Updated client ${clientId} equivalence form status to pending`);
+        this.logger.log(`Updated client ${clientId} equivalence form status to pending with folder URL`);
       }
     } catch (error) {
       this.logger.warn('Could not save to database, continuing with notifications');
@@ -83,6 +104,24 @@ export class FormsService {
   ) {
     this.logger.log(`Submitting residence form for: ${data.nomComplet}`);
 
+    let cloudinaryUrl: string | null = null;
+
+    // Upload file to Cloudinary if file exists
+    if (file && file.path) {
+      try {
+        const uploadResult = await this.cloudinaryService.uploadFromPath(
+          file.path,
+          'forms/residence',
+        );
+        cloudinaryUrl = uploadResult.secure_url;
+        this.logger.log(`File uploaded to Cloudinary: ${cloudinaryUrl}`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(`Failed to upload to Cloudinary: ${errorMessage}`);
+        // Continue without file if upload fails
+      }
+    }
+
     const formData = {
       type: 'RESIDENCE' as const,
       nomComplet: data.nomComplet,
@@ -91,7 +130,7 @@ export class FormsService {
       programme: data.programme,
       numeroDossier: data.numeroDossier,
       etape: data.etape,
-      fileUrl: file ? `/uploads/forms/${file.filename}` : null,
+      fileUrl: cloudinaryUrl,
       submittedAt: new Date(),
     };
 
@@ -102,12 +141,12 @@ export class FormsService {
           clientId: clientId || null,
           type: 'RESIDENCE',
           data: formData,
-          fileUrl: formData.fileUrl,
+          fileUrl: cloudinaryUrl,
         },
       });
       this.logger.log(`Residence form persisted (id=${saved.id}, clientId=${clientId})`);
       
-      // Update client's form tracking status
+      // Update client's form tracking status and save folder URL
       if (clientId) {
         await this.prisma.client.update({
           where: { id: clientId },
@@ -116,9 +155,10 @@ export class FormsService {
             residenceStatus: 'pending',
             residenceRejectedAt: null,
             residenceRejectionReason: null,
+            folderResidence: cloudinaryUrl,
           },
         });
-        this.logger.log(`Updated client ${clientId} residence form status to pending`);
+        this.logger.log(`Updated client ${clientId} residence form status to pending with folder URL`);
       }
     } catch (error) {
       this.logger.warn('Could not save residence form to database, continuing');

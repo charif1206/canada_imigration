@@ -48,7 +48,7 @@ const ContactPage: React.FC = () => {
 
                 <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10">
                     {/* Contact Form */}
-                    <div className="bg-white p-8 rounded-xl shadow-lg">
+                    <div className="bg-white p-8 text-black rounded-xl shadow-lg">
                         <h2 className="text-2xl font-bold text-blue-900 mb-6">Envoyer un message</h2>
                         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                             <div>

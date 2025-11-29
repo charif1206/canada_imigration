@@ -223,7 +223,7 @@ const PartnersPage: React.FC = () => {
                         <div ref={formRef} className="mt-16 max-w-4xl mx-auto scroll-mt-24">
                             <div className="bg-white p-8 rounded-xl shadow-lg">
                                 <h2 className="text-2xl font-bold text-center mb-6" style={{ color: '#0A2540' }}>Formulaire d&apos;inscription – Agences de Voyages</h2>
-                                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <form onSubmit={handleSubmit} className="grid grid-cols-1 text-black md:grid-cols-2 gap-6">
                                     <div className="md:col-span-2">
                                         <label htmlFor="agencyName" className="block text-sm font-medium text-gray-700">Nom de l&apos;agence</label>
                                         <input type="text" name="agencyName" id="agencyName" value={formData.agencyName} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500" />

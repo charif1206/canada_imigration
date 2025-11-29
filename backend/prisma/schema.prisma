@@ -12,6 +12,8 @@ model Client {
   name                              String
   email                             String    @unique
   password                          String    @default("$2b$10$defaultpasswordhash")
+  phone                             String?
+  countryOfResidence                String?
   passportNumber                    String?
   nationality                       String?
   // Email verification fields
@@ -26,11 +28,13 @@ model Client {
   equivalenceStatus                 String?   // "pending", "validated", "rejected"
   equivalenceRejectedAt             DateTime?
   equivalenceRejectionReason        String?
+  folderEquivalence                 String?
   //
   isSendingFormulaireResidence      Boolean   @default(false)
   residenceStatus                   String?   // "pending", "validated", "rejected"
   residenceRejectedAt               DateTime?
   residenceRejectionReason          String?
+  folderResidence                   String?
   //
   isSendingPartners                 Boolean   @default(false)
   partnerStatus                     String?   // "pending", "validated", "rejected"

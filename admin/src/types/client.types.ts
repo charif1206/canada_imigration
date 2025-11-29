@@ -21,12 +21,14 @@ export interface Client {
   equivalenceStatus?: string | null;
   equivalenceRejectedAt?: Date | null;
   equivalenceRejectionReason?: string | null;
+  folderEquivalence?: string | null;
   
   // Form tracking fields for residence form
   isSendingFormulaireResidence?: boolean;
   residenceStatus?: string | null;
   residenceRejectedAt?: Date | null;
   residenceRejectionReason?: string | null;
+  folderResidence?: string | null;
   
   // Form tracking fields for partner form
   isSendingPartners?: boolean;

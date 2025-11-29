@@ -71,11 +71,17 @@ const ProfilePage: React.FC = () => {
                                         <p className="text-gray-800 mt-1 p-3 bg-gray-50 rounded">{client?.email}</p>
                                     </div>
 
-                                    {/* Nationality */}
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Nationalité</label>
-                                        <p className="text-gray-800 mt-1 p-3 bg-gray-50 rounded">{client?.nationality || 'Non renseignée'}</p>
-                                    </div>
+                                    {/* Phone Number */}
+                                    {/* <div>
+                                        <label className="text-sm font-medium text-gray-600">Numéro de téléphone</label>
+                                        <p className="text-gray-800 mt-1 p-3 bg-gray-50 rounded">{client?.phone || 'Non renseigné'}</p>
+                                    </div> */}
+
+                                    {/* Country of Residence */}
+                                    {/* <div>
+                                        <label className="text-sm font-medium text-gray-600">Pays de résidence</label>
+                                        <p className="text-gray-800 mt-1 p-3 bg-gray-50 rounded">{client?.countryOfResidence || 'Non renseigné'}</p>
+                                    </div> */}
 
                                     {/* Member Since */}
                                     <div>
@@ -93,10 +99,10 @@ const ProfilePage: React.FC = () => {
                                 
                                 <div className="space-y-6">
                                     {/* Passport Number */}
-                                    <div>
+                                    {/* <div>
                                         <label className="text-sm font-medium text-gray-600">Numéro de passeport</label>
                                         <p className="text-gray-800 mt-1 p-3 bg-gray-50 rounded">{client?.passportNumber || 'Non renseigné'}</p>
-                                    </div>
+                                    </div> */}
 
                                     {/* Validation Status */}
                                     <div>
@@ -121,48 +127,7 @@ const ProfilePage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Actions */}
-                <div className="bg-white rounded-lg shadow-md p-8">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-6">🚀 Actions rapides</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <Link
-                            href="/status"
-                            className="flex flex-col items-center text-center bg-purple-600 text-white px-6 py-4 rounded-lg hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg"
-                        >
-                            <svg className="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span className="font-medium">Statut de validation</span>
-                        </Link>
-                        <Link
-                            href="/forms"
-                            className="flex flex-col items-center text-center bg-blue-600 text-white px-6 py-4 rounded-lg hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg"
-                        >
-                            <svg className="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <span className="font-medium">Formulaires</span>
-                        </Link>
-                        <Link
-                            href="/services"
-                            className="flex flex-col items-center text-center bg-green-600 text-white px-6 py-4 rounded-lg hover:bg-green-700 transition-colors shadow-md hover:shadow-lg"
-                        >
-                            <svg className="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            </svg>
-                            <span className="font-medium">Nos services</span>
-                        </Link>
-                        <Link
-                            href="/contact"
-                            className="flex flex-col items-center text-center bg-red-600 text-white px-6 py-4 rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg"
-                        >
-                            <svg className="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            </svg>
-                            <span className="font-medium">Contact</span>
-                        </Link>
-                    </div>
-                </div>
+            
             </div>
         </div>
         </ProtectedRoute>

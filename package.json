@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "@nestjs/config": "^4.0.2",
-    "googleapis": "^165.0.0",
-    "nodemailer": "^7.0.10"
-  }
-}

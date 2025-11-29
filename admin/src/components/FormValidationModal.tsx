@@ -204,8 +204,12 @@ export default function FormValidationModal({
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <p className="text-sm text-gray-500">Full Name</p>
-            <p className="font-semibold text-gray-800">{data.fullName || 'N/A'}</p>
+            <p className="text-sm text-gray-500">Agency Name</p>
+            <p className="font-semibold text-gray-800">{data.agencyName || 'N/A'}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Manager Name</p>
+            <p className="font-semibold text-gray-800">{data.managerName || 'N/A'}</p>
           </div>
           <div>
             <p className="text-sm text-gray-500">Email</p>
@@ -215,10 +219,10 @@ export default function FormValidationModal({
             <p className="text-sm text-gray-500">Phone</p>
             <p className="font-semibold text-gray-800">{data.phone || 'N/A'}</p>
           </div>
-          <div>
+          {/* <div>
             <p className="text-sm text-gray-500">Company</p>
             <p className="font-semibold text-gray-800">{data.company || 'N/A'}</p>
-          </div>
+          </div> */}
           <div className="md:col-span-2">
             <p className="text-sm text-gray-500">Message</p>
             <p className="font-semibold text-gray-800">{data.message || 'N/A'}</p>
@@ -312,6 +316,64 @@ export default function FormValidationModal({
                   {renderFormData()}
                 </div>
               </div>
+
+              {/* Cloudinary Folder URL */}
+              {formData.submission?.portfolioUrl || formData.submission?.fileUrl ? (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">📁 Uploaded Documents</h3>
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-3">
+                      <svg
+                        className="w-10 h-10 text-blue-600"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-600 mb-1">
+                          {formType === 'equivalence' ? 'Portfolio Document' : 'Residence Document'}
+                        </p>
+                        <a
+                          href={(() => {
+                            const url = formData.submission?.portfolioUrl || formData.submission?.fileUrl;
+                            // If URL is relative (local file), prepend backend URL
+                            if (url && url.startsWith('/uploads/')) {
+                              return `${process.env.NEXT_PUBLIC_API_URL}${url}`;
+                            }
+                            // Otherwise, it's a Cloudinary URL, use as-is
+                            return url;
+                          })()}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                            />
+                          </svg>
+                          Open Document
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
 
               {/* Rejection Reason Input */}
               <div className="mb-6">

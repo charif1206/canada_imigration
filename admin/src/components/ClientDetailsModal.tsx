@@ -108,8 +108,8 @@ export default function ClientDetailsModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <DetailItem label="Full Name" value={client.name} />
               <DetailItem label="Email" value={client.email} />
-              <DetailItem label="Passport Number" value={client.passportNumber} />
-              <DetailItem label="Nationality" value={client.nationality} />
+              {/* <DetailItem label="Passport Number" value={client.passportNumber} />
+              <DetailItem label="Nationality" value={client.nationality} /> */}
             </div>
           </div>
 

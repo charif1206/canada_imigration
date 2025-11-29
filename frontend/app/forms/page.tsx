@@ -145,7 +145,7 @@ const FormulaireEquivalence: React.FC<{onSubmitSuccess: () => void}> = ({onSubmi
 
     return (
         <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 text-black md:grid-cols-2 gap-6">
                 <InputField label="Prénom" type="text" name="prenom" value={formData.prenom} onChange={handleChange} error={errors.prenom} />
                 <InputField label="Nom" type="text" name="nom" value={formData.nom} onChange={handleChange} error={errors.nom} />
                 <InputField label="Adresse" type="text" name="adresse" value={formData.adresse} onChange={handleChange} />
@@ -268,7 +268,7 @@ const FormulaireResidence: React.FC<{onSubmitSuccess: () => void}> = ({onSubmitS
     
     return (
         <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 text-black md:grid-cols-2 gap-6">
                 <InputField label="Nom / Prénom" type="text" name="nomComplet" value={formData.nomComplet} onChange={handleChange} required error={errors.nomComplet} />
                 <InputField label="Date de naissance" type="date" name="dateNaissance" value={formData.dateNaissance} onChange={handleChange} required error={errors.dateNaissance} />
                 <InputField label="Pays de résidence" type="text" name="paysResidence" value={formData.paysResidence} onChange={handleChange} required error={errors.paysResidence} />
@@ -455,28 +455,34 @@ const FormsPage: React.FC = () => {
         return () => clearInterval(interval);
     }, [refreshAuth]);
     
-    const handleEquivalenceSubmit = () => {
+    const handleEquivalenceSubmit = async () => {
         if (!client?.id) return;
-        // Set temporary flag in localStorage before reload (user-specific)
+        // Set temporary flag in localStorage (user-specific)
         localStorage.setItem(`temp_sending_equivalence_${client.id}`, 'true');
         setIsSendingTemporarilyEquivalence(true);
         window.scrollTo(0, 0);
-        // Reload to fetch updated user data
+        // Refresh auth data without full page reload
+        await refreshAuth();
+        // Clear temporary flag after auth refresh
         setTimeout(() => {
-            window.location.reload();
-        }, 500);
+            localStorage.removeItem(`temp_sending_equivalence_${client.id}`);
+            setIsSendingTemporarilyEquivalence(false);
+        }, 1000);
     };
 
-    const handleResidenceSubmit = () => {
+    const handleResidenceSubmit = async () => {
         if (!client?.id) return;
-        // Set temporary flag in localStorage before reload (user-specific)
+        // Set temporary flag in localStorage (user-specific)
         localStorage.setItem(`temp_sending_residence_${client.id}`, 'true');
         setIsSendingTemporarilyResidence(true);
         window.scrollTo(0, 0);
-        // Reload to fetch updated user data
+        // Refresh auth data without full page reload
+        await refreshAuth();
+        // Clear temporary flag after auth refresh
         setTimeout(() => {
-            window.location.reload();
-        }, 500);
+            localStorage.removeItem(`temp_sending_residence_${client.id}`);
+            setIsSendingTemporarilyResidence(false);
+        }, 1000);
     };
     
     // Check if forms can be resubmitted based on rejection time

@@ -113,7 +113,7 @@ function DetailsPageContent() {
                     <p className="text-sm text-gray-500">Email</p>
                     <p className="font-semibold text-gray-800">{formData.client.email}</p>
                   </div>
-                  <div>
+                  {/* <div>
                     <p className="text-sm text-gray-500">Passport Number</p>
                     <p className="font-semibold text-gray-800">
                       {formData.client.passportNumber || 'N/A'}
@@ -124,7 +124,7 @@ function DetailsPageContent() {
                     <p className="font-semibold text-gray-800">
                       {formData.client.nationality || 'N/A'}
                     </p>
-                  </div>
+                  </div> */}
                   <div>
                     <p className="text-sm text-gray-500">Email Verified</p>
                     <p className="font-semibold">
@@ -344,14 +344,14 @@ function DetailsPageContent() {
                   <p className="text-sm text-gray-500">Email</p>
                   <p className="font-semibold text-gray-800">{clientData.email}</p>
                 </div>
-                <div>
+                {/* <div>
                   <p className="text-sm text-gray-500">Passport Number</p>
                   <p className="font-semibold text-gray-800">{clientData.passportNumber || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Nationality</p>
                   <p className="font-semibold text-gray-800">{clientData.nationality || 'N/A'}</p>
-                </div>
+                </div> */}
                 <div>
                   <p className="text-sm text-gray-500">Email Verified</p>
                   <p className="font-semibold">
@@ -411,16 +411,35 @@ function DetailsPageContent() {
                         <p className="font-semibold text-gray-800">🏠 Residence Application</p>
                         <p className="text-sm text-gray-600">Status: {clientData.residenceStatus || 'unknown'}</p>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        clientData.residenceStatus === 'validated' 
-                          ? 'bg-green-100 text-green-800' 
-                          : clientData.residenceStatus === 'rejected' 
-                          ? 'bg-red-100 text-red-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {clientData.residenceStatus === 'validated' ? '✅ Validated' : 
-                         clientData.residenceStatus === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {(clientData as any).folderResidence && (
+                          <a
+                            href={(() => {
+                              const url = (clientData as any).folderResidence;
+                              // If URL is relative (local file), prepend backend URL
+                              if (url && url.startsWith('/uploads/')) {
+                                return `${process.env.NEXT_PUBLIC_API_URL}${url}`;
+                              }
+                              return url;
+                            })()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                          >
+                            📁 View Folder
+                          </a>
+                        )}
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          clientData.residenceStatus === 'validated' 
+                            ? 'bg-green-100 text-green-800' 
+                            : clientData.residenceStatus === 'rejected' 
+                            ? 'bg-red-100 text-red-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {clientData.residenceStatus === 'validated' ? '✅ Validated' : 
+                           clientData.residenceStatus === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
+                        </span>
+                      </div>
                     </div>
                     {clientData.residenceRejectionReason && (
                       <p className="text-sm text-red-600 mt-2">
@@ -438,16 +457,35 @@ function DetailsPageContent() {
                         <p className="font-semibold text-gray-800">🎓 Equivalence Application</p>
                         <p className="text-sm text-gray-600">Status: {clientData.equivalenceStatus || 'unknown'}</p>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        clientData.equivalenceStatus === 'validated' 
-                          ? 'bg-green-100 text-green-800' 
-                          : clientData.equivalenceStatus === 'rejected' 
-                          ? 'bg-red-100 text-red-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {clientData.equivalenceStatus === 'validated' ? '✅ Validated' : 
-                         clientData.equivalenceStatus === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {(clientData as any).folderEquivalence && (
+                          <a
+                            href={(() => {
+                              const url = (clientData as any).folderEquivalence;
+                              // If URL is relative (local file), prepend backend URL
+                              if (url && url.startsWith('/uploads/')) {
+                                return `${process.env.NEXT_PUBLIC_API_URL}${url}`;
+                              }
+                              return url;
+                            })()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                          >
+                            📁 View Folder
+                          </a>
+                        )}
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          clientData.equivalenceStatus === 'validated' 
+                            ? 'bg-green-100 text-green-800' 
+                            : clientData.equivalenceStatus === 'rejected' 
+                            ? 'bg-red-100 text-red-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {clientData.equivalenceStatus === 'validated' ? '✅ Validated' : 
+                           clientData.equivalenceStatus === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
+                        </span>
+                      </div>
                     </div>
                     {clientData.equivalenceRejectionReason && (
                       <p className="text-sm text-red-600 mt-2">
