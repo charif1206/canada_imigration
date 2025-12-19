@@ -26,5 +26,21 @@ export class ResidenceFormDto {
   etape: string;
 
   @IsOptional()
+  @IsString({ message: 'Diploma must be a valid text string.' })
+  diplome?: string;
+
+  @IsOptional()
+  @IsString({ message: 'Years of study must be a valid text string.' })
+  anneesEtudes?: string;
+
+  @IsOptional()
+  @IsString({ message: 'Years of experience must be a valid text string.' })
+  anneesExperience?: string;
+
+  @IsOptional()
+  @IsString({ message: 'Family situation must be a valid text string.' })
+  situationFamiliale?: string;
+
+  @IsOptional()
   fileUpload?: any; // File type will be handled by multer
 }

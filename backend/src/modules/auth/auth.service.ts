@@ -1,205 +1,166 @@
-import { Injectable, UnauthorizedException, Logger, OnModuleInit, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  Logger,
+  OnModuleInit,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Admin } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
-import { LoginDto } from './dto/login.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { LoginDto } from './dto/login.dto';
+import { RegisterAdminDto } from './dto/register-admin.dto';
+import {
+  LoginResponse,
+  AdminProfileResponse,
+  MessageResponse,
+  EmailVerificationResponse,
+  SafeAdmin,
+} from './interfaces/auth.interface';
+import { hashPassword, comparePasswords } from './helpers/password.helper';
+import {
+  generateEmailVerificationToken,
+  generatePasswordResetToken,
+  isTokenExpired,
+} from './helpers/token.helper';
+import {
+  sanitizeAdmin,
+  transformToProfileResponse,
+  createJwtPayload,
+  formatMessage,
+} from './helpers/admin.helper';
+import {
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES,
+  LOG_MESSAGES,
+  DEFAULT_ADMIN_USERNAME,
+  DEFAULT_ADMIN_PASSWORD,
+  DEFAULT_ADMIN_EMAIL,
+  DEFAULT_ADMIN_ROLE,
+} from './constants/auth.constants';
 
+/**
+ * Authentication Service
+ * Handles authentication, registration, email verification, and password management
+ * Follows Single Responsibility Principle with helper functions for specific tasks
+ */
 @Injectable()
 export class AuthService implements OnModuleInit {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    private prisma: PrismaService,
-    private jwtService: JwtService,
-    private configService: ConfigService,
-    private notificationsService: NotificationsService,
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async onModuleInit() {
-    // Create default admin if not exists
     await this.createDefaultAdmin();
   }
 
-  private async createDefaultAdmin() {
-    try {
-      const username = this.configService.get<string>('ADMIN_DEFAULT_USERNAME') || 'admin';
-      
-      const existingAdmin = await this.prisma.admin.findUnique({
-        where: { username },
-      });
+  // ========================================
+  // AUTHENTICATION
+  // ========================================
 
-      if (!existingAdmin) {
-        const password = this.configService.get<string>('ADMIN_DEFAULT_PASSWORD') || 'admin123';
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        await this.prisma.admin.create({
-          data: {
-            username,
-            password: hashedPassword,
-            email: 'admin@immigration.com',
-            role: 'admin',
-          },
-        });
-
-        this.logger.log(`✅ Default admin created: ${username}`);
-        this.logger.warn(`⚠️ Please change the default password immediately!`);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`Failed to create default admin: ${errorMessage}`);
-    }
-  }
-
-  async validateUser(username: string, password: string): Promise<any> {
-    const admin = await this.prisma.admin.findUnique({
-      where: { username },
-    });
+  /**
+   * Validate user credentials
+   * @throws UnauthorizedException if credentials are invalid
+   */
+  async validateUser(username: string, password: string): Promise<SafeAdmin> {
+    const admin = await this.findAdminByUsername(username);
 
     if (!admin) {
-      throw new UnauthorizedException(`Admin account with username '${username}' does not exist. Please check your username or contact support.`);
+      throw new UnauthorizedException(
+        formatMessage(ERROR_MESSAGES.USERNAME_NOT_FOUND, { username }),
+      );
     }
 
-    const isPasswordValid = await bcrypt.compare(password, admin.password);
+    const isPasswordValid = await comparePasswords(password, admin.password);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Password is incorrect. Please check your password and try again.');
+      throw new UnauthorizedException(ERROR_MESSAGES.INCORRECT_PASSWORD);
     }
 
-    const { password: _, ...result } = admin;
-    return result;
+    return sanitizeAdmin(admin);
   }
 
-  async login(loginDto: LoginDto) {
+  /**
+   * Login admin and return JWT token
+   * @throws UnauthorizedException if email not verified or credentials invalid
+   */
+  async login(loginDto: LoginDto): Promise<LoginResponse> {
     const admin = await this.validateUser(loginDto.username, loginDto.password);
 
-    // Check if email is verified
     if (!admin.isEmailVerified) {
-      throw new UnauthorizedException('Email not verified. Please check your email and verify your account before logging in.');
+      throw new UnauthorizedException(ERROR_MESSAGES.EMAIL_NOT_VERIFIED);
     }
 
-    const payload = {
-      username: admin.username,
-      sub: admin.id,
-      role: admin.role,
-    };
+    const payload = createJwtPayload(admin as Admin);
+    const access_token = this.jwtService.sign(payload);
 
     return {
-      access_token: this.jwtService.sign(payload),
-      admin: {
-        id: admin.id,
-        username: admin.username,
-        email: admin.email,
-        role: admin.role,
-      },
+      access_token,
+      admin: transformToProfileResponse(admin as Admin),
     };
   }
 
-  async changePassword(adminId: string, oldPassword: string, newPassword: string) {
-    const admin = await this.prisma.admin.findUnique({
-      where: { id: adminId },
-    });
+  // ========================================
+  // REGISTRATION
+  // ========================================
 
-    if (!admin) {
-      throw new UnauthorizedException('Admin account not found. Your session may have expired. Please log in again.');
-    }
+  /**
+   * Register a new admin
+   * @throws UnauthorizedException if username or email already exists
+   */
+  async register(registerDto: RegisterAdminDto): Promise<SafeAdmin> {
+    // Check for existing username
+    await this.checkUsernameAvailability(registerDto.username);
 
-    const isPasswordValid = await bcrypt.compare(oldPassword, admin.password);
-
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Current password is incorrect. Please enter your correct current password to change it.');
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    await this.prisma.admin.update({
-      where: { id: adminId },
-      data: { password: hashedPassword },
-    });
-
-    this.logger.log(`Password changed for admin: ${admin.username}`);
-
-    return { message: 'Password changed successfully' };
-  }
-
-  async getProfile(adminId: string) {
-    return this.prisma.admin.findUnique({
-      where: { id: adminId },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-  }
-
-  async register(registerDto: { username: string; password: string; email: string; role?: string }) {
-    // Check if username already exists
-    const existingAdmin = await this.prisma.admin.findUnique({
-      where: { username: registerDto.username },
-    });
-
-    if (existingAdmin) {
-      throw new UnauthorizedException(`Username '${registerDto.username}' is already taken. Please choose a different username.`);
-    }
-
-    // Check if email already exists
-    const existingEmail = await this.prisma.admin.findFirst({
-      where: { email: registerDto.email },
-    });
-
-    if (existingEmail) {
-      throw new UnauthorizedException(`Email '${registerDto.email}' is already registered. Please use a different email or try logging in.`);
-    }
+    // Check for existing email
+    await this.checkEmailAvailability(registerDto.email);
 
     // Hash password
-    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+    const hashedPassword = await hashPassword(registerDto.password);
 
-    // Generate email verification token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    // Generate verification token
+    const { token: verificationToken, expiresAt: verificationExpires } =
+      generateEmailVerificationToken();
 
-    // Create new admin
+    // Create admin
     const newAdmin = await this.prisma.admin.create({
       data: {
         username: registerDto.username,
         password: hashedPassword,
         email: registerDto.email,
-        role: registerDto.role || 'admin',
+        role: registerDto.role || DEFAULT_ADMIN_ROLE,
         emailVerificationToken: verificationToken,
         emailVerificationExpires: verificationExpires,
         isEmailVerified: false,
       },
     });
 
-    this.logger.log(`✅ New admin created: ${newAdmin.username}`);
+    this.logger.log(
+      formatMessage(LOG_MESSAGES.NEW_ADMIN_CREATED, { username: newAdmin.username }),
+    );
 
-    // Send verification email
-    try {
-      await this.notificationsService.sendVerificationEmail(
-        newAdmin.email,
-        verificationToken,
-        'admin',
-      );
-      this.logger.log(`📧 Verification email sent to ${newAdmin.email}`);
-    } catch (error) {
-      this.logger.error('Failed to send verification email:', error);
-      // Don't throw error - allow registration to complete even if email fails
-    }
+    // Send verification email (non-blocking)
+    this.sendVerificationEmailAsync(newAdmin.email, verificationToken);
 
-    const { password: _, ...adminWithoutPassword } = newAdmin;
-    return adminWithoutPassword;
+    return sanitizeAdmin(newAdmin);
   }
+
+  // ========================================
+  // EMAIL VERIFICATION
+  // ========================================
 
   /**
    * Verify admin email with token
+   * @throws BadRequestException if token is invalid or expired
    */
-  async verifyEmail(token: string) {
+  async verifyEmail(token: string): Promise<EmailVerificationResponse> {
     this.logger.log(`Verifying email with token: ${token.substring(0, 10)}...`);
 
     const admin = await this.prisma.admin.findUnique({
@@ -207,18 +168,21 @@ export class AuthService implements OnModuleInit {
     });
 
     if (!admin) {
-      throw new BadRequestException('Invalid or expired verification token');
+      throw new BadRequestException(ERROR_MESSAGES.INVALID_TOKEN);
     }
 
     if (admin.isEmailVerified) {
-      return { message: 'Email already verified', alreadyVerified: true };
+      return {
+        message: ERROR_MESSAGES.ALREADY_VERIFIED,
+        alreadyVerified: true,
+      };
     }
 
-    if (admin.emailVerificationExpires < new Date()) {
-      throw new BadRequestException('Verification token has expired. Please request a new one.');
+    if (isTokenExpired(admin.emailVerificationExpires)) {
+      throw new BadRequestException(ERROR_MESSAGES.EXPIRED_TOKEN);
     }
 
-    // Mark email as verified
+    // Mark as verified
     await this.prisma.admin.update({
       where: { id: admin.id },
       data: {
@@ -228,41 +192,34 @@ export class AuthService implements OnModuleInit {
       },
     });
 
-    this.logger.log(`✅ Email verified for admin: ${admin.username}`);
+    this.logger.log(
+      formatMessage(LOG_MESSAGES.EMAIL_VERIFIED, { username: admin.username }),
+    );
 
-    // Send success email
-    try {
-      await this.notificationsService.sendVerificationSuccessEmail(
-        admin.email,
-        admin.username,
-        'admin',
-      );
-    } catch (error) {
-      this.logger.error('Failed to send verification success email:', error);
-    }
+    // Send success email (non-blocking)
+    this.sendVerificationSuccessEmailAsync(admin.email, admin.username);
 
-    return { message: 'Email verified successfully' };
+    return { message: SUCCESS_MESSAGES.EMAIL_VERIFIED };
   }
 
   /**
    * Resend verification email
+   * @throws BadRequestException if account not found or already verified
    */
-  async resendVerificationEmail(email: string) {
-    const admin = await this.prisma.admin.findFirst({
-      where: { email },
-    });
+  async resendVerificationEmail(email: string): Promise<MessageResponse> {
+    const admin = await this.findAdminByEmail(email);
 
     if (!admin) {
-      throw new BadRequestException('No account found with this email');
+      throw new BadRequestException(ERROR_MESSAGES.ACCOUNT_NOT_FOUND);
     }
 
     if (admin.isEmailVerified) {
-      throw new BadRequestException('Email is already verified');
+      throw new BadRequestException(ERROR_MESSAGES.ALREADY_VERIFIED);
     }
 
     // Generate new token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const { token: verificationToken, expiresAt: verificationExpires } =
+      generateEmailVerificationToken();
 
     await this.prisma.admin.update({
       where: { id: admin.id },
@@ -279,27 +236,67 @@ export class AuthService implements OnModuleInit {
       'admin',
     );
 
-    this.logger.log(`📧 Verification email resent to ${admin.email}`);
+    this.logger.log(
+      formatMessage(LOG_MESSAGES.VERIFICATION_EMAIL_SENT, { email: admin.email }),
+    );
 
-    return { message: 'Verification email sent' };
+    return { message: SUCCESS_MESSAGES.VERIFICATION_EMAIL_SENT };
+  }
+
+  // ========================================
+  // PASSWORD MANAGEMENT
+  // ========================================
+
+  /**
+   * Change password (authenticated user)
+   * @throws UnauthorizedException if old password is incorrect
+   */
+  async changePassword(
+    adminId: string,
+    oldPassword: string,
+    newPassword: string,
+  ): Promise<MessageResponse> {
+    const admin = await this.findAdminById(adminId);
+
+    if (!admin) {
+      throw new UnauthorizedException(ERROR_MESSAGES.ADMIN_NOT_FOUND);
+    }
+
+    const isPasswordValid = await comparePasswords(oldPassword, admin.password);
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException(ERROR_MESSAGES.OLD_PASSWORD_INCORRECT);
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+
+    await this.prisma.admin.update({
+      where: { id: adminId },
+      data: { password: hashedPassword },
+    });
+
+    this.logger.log(
+      formatMessage(LOG_MESSAGES.PASSWORD_CHANGED, { username: admin.username }),
+    );
+
+    return { message: SUCCESS_MESSAGES.PASSWORD_CHANGED };
   }
 
   /**
    * Request password reset (forgot password)
+   * Returns success message regardless of whether email exists (security)
    */
-  async forgotPassword(email: string) {
-    const admin = await this.prisma.admin.findFirst({
-      where: { email },
-    });
+  async forgotPassword(email: string): Promise<MessageResponse> {
+    const admin = await this.findAdminByEmail(email);
 
     if (!admin) {
-      // Don't reveal if email exists (security best practice)
-      return { message: 'If an account exists with this email, a password reset link has been sent.' };
+      // Don't reveal if email exists
+      return { message: SUCCESS_MESSAGES.PASSWORD_RESET_EMAIL_SENT };
     }
 
     // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const { token: resetToken, expiresAt: resetExpires } =
+      generatePasswordResetToken();
 
     await this.prisma.admin.update({
       where: { id: admin.id },
@@ -316,31 +313,32 @@ export class AuthService implements OnModuleInit {
       'admin',
     );
 
-    this.logger.log(`📧 Password reset email sent to ${admin.email}`);
+    this.logger.log(
+      formatMessage(LOG_MESSAGES.PASSWORD_RESET_REQUESTED, { email: admin.email }),
+    );
 
-    return { message: 'If an account exists with this email, a password reset link has been sent.' };
+    return { message: SUCCESS_MESSAGES.PASSWORD_RESET_EMAIL_SENT };
   }
 
   /**
    * Reset password with token
+   * @throws BadRequestException if token is invalid or expired
    */
-  async resetPassword(token: string, newPassword: string) {
+  async resetPassword(token: string, newPassword: string): Promise<MessageResponse> {
     const admin = await this.prisma.admin.findUnique({
       where: { resetPasswordToken: token },
     });
 
     if (!admin) {
-      throw new BadRequestException('Invalid or expired reset token');
+      throw new BadRequestException(ERROR_MESSAGES.INVALID_RESET_TOKEN);
     }
 
-    if (admin.resetPasswordExpires < new Date()) {
-      throw new BadRequestException('Reset token has expired. Please request a new one.');
+    if (isTokenExpired(admin.resetPasswordExpires)) {
+      throw new BadRequestException(ERROR_MESSAGES.EXPIRED_RESET_TOKEN);
     }
 
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await hashPassword(newPassword);
 
-    // Update password and clear reset token
     await this.prisma.admin.update({
       where: { id: admin.id },
       data: {
@@ -350,8 +348,148 @@ export class AuthService implements OnModuleInit {
       },
     });
 
-    this.logger.log(`✅ Password reset for admin: ${admin.username}`);
+    this.logger.log(
+      formatMessage(LOG_MESSAGES.PASSWORD_RESET, { username: admin.username }),
+    );
 
-    return { message: 'Password reset successfully' };
+    return { message: SUCCESS_MESSAGES.PASSWORD_RESET_SUCCESS };
+  }
+
+  // ========================================
+  // PROFILE
+  // ========================================
+
+  /**
+   * Get admin profile
+   */
+  async getProfile(adminId: string): Promise<AdminProfileResponse | null> {
+    const admin = await this.prisma.admin.findUnique({
+      where: { id: adminId },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        isEmailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return admin;
+  }
+
+  // ========================================
+  // PRIVATE HELPER METHODS
+  // ========================================
+
+  /**
+   * Create default admin on module initialization
+   */
+  private async createDefaultAdmin(): Promise<void> {
+    try {
+      const username =
+        this.configService.get<string>('ADMIN_DEFAULT_USERNAME') || DEFAULT_ADMIN_USERNAME;
+
+      const existingAdmin = await this.findAdminByUsername(username);
+
+      if (!existingAdmin) {
+        const password =
+          this.configService.get<string>('ADMIN_DEFAULT_PASSWORD') || DEFAULT_ADMIN_PASSWORD;
+        const hashedPassword = await hashPassword(password);
+
+        await this.prisma.admin.create({
+          data: {
+            username,
+            password: hashedPassword,
+            email: DEFAULT_ADMIN_EMAIL,
+            role: DEFAULT_ADMIN_ROLE,
+            isEmailVerified: true, // Default admin is pre-verified
+          },
+        });
+
+        this.logger.log(formatMessage(LOG_MESSAGES.DEFAULT_ADMIN_CREATED, { username }));
+        this.logger.warn(LOG_MESSAGES.DEFAULT_ADMIN_WARNING);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(
+        formatMessage(ERROR_MESSAGES.DEFAULT_ADMIN_CREATION_FAILED, { error: errorMessage }),
+      );
+    }
+  }
+
+  /**
+   * Find admin by username
+   */
+  private async findAdminByUsername(username: string): Promise<Admin | null> {
+    return this.prisma.admin.findUnique({ where: { username } });
+  }
+
+  /**
+   * Find admin by email
+   */
+  private async findAdminByEmail(email: string): Promise<Admin | null> {
+    return this.prisma.admin.findFirst({ where: { email } });
+  }
+
+  /**
+   * Find admin by ID
+   */
+  private async findAdminById(id: string): Promise<Admin | null> {
+    return this.prisma.admin.findUnique({ where: { id } });
+  }
+
+  /**
+   * Check if username is available
+   * @throws UnauthorizedException if username exists
+   */
+  private async checkUsernameAvailability(username: string): Promise<void> {
+    const existingAdmin = await this.findAdminByUsername(username);
+
+    if (existingAdmin) {
+      throw new UnauthorizedException(
+        formatMessage(ERROR_MESSAGES.USERNAME_TAKEN, { username }),
+      );
+    }
+  }
+
+  /**
+   * Check if email is available
+   * @throws UnauthorizedException if email exists
+   */
+  private async checkEmailAvailability(email: string): Promise<void> {
+    const existingEmail = await this.findAdminByEmail(email);
+
+    if (existingEmail) {
+      throw new UnauthorizedException(
+        formatMessage(ERROR_MESSAGES.EMAIL_TAKEN, { email }),
+      );
+    }
+  }
+
+  /**
+   * Send verification email asynchronously (non-blocking)
+   */
+  private sendVerificationEmailAsync(email: string, token: string): void {
+    this.notificationsService
+      .sendVerificationEmail(email, token, 'admin')
+      .then(() => {
+        this.logger.log(formatMessage(LOG_MESSAGES.VERIFICATION_EMAIL_SENT, { email }));
+      })
+      .catch((error) => {
+        this.logger.error(ERROR_MESSAGES.VERIFICATION_EMAIL_FAILED, error);
+      });
+  }
+
+  /**
+   * Send verification success email asynchronously (non-blocking)
+   */
+  private sendVerificationSuccessEmailAsync(email: string, username: string): void {
+    this.notificationsService
+      .sendVerificationSuccessEmail(email, username, 'admin')
+      .catch((error) => {
+        this.logger.error('Failed to send verification success email:', error);
+      });
   }
 }

@@ -4,231 +4,180 @@ import { CloudinaryService } from '../../cloudinary/cloudinary.service';
 import { EquivalenceFormDto } from './dto/equivalence-form.dto';
 import { ResidenceFormDto } from './dto/residence-form.dto';
 import { PartnerFormDto } from './dto/partner-form.dto';
+import {
+  FormSubmissionResponse,
+  FormSubmission,
+  EquivalenceFormData,
+  ResidenceFormData,
+  PartnerFormData,
+} from './interfaces/forms.interface';
+import {
+  uploadFileToCloudinary,
+  formatLogMessage,
+} from './helpers/file-upload.helper';
+import {
+  createEquivalenceFormData,
+  createResidenceFormData,
+  createPartnerFormData,
+} from './helpers/form-data.helper';
+import {
+  updateClientEquivalenceStatus,
+  updateClientResidenceStatus,
+  updateClientPartnerStatus,
+} from './helpers/client-update.helper';
+import { createFormSubmissionResponse } from './helpers/response.helper';
+import {
+  FORM_TYPES,
+  CLOUDINARY_FOLDERS,
+  LOG_MESSAGES,
+} from './constants/forms.constants';
 
+/**
+ * Forms Service
+ * Handles form submission, file uploads, and database persistence
+ * Follows Single Responsibility Principle with helper functions for specific tasks
+ */
 @Injectable()
 export class FormsService {
-  private logger = new Logger(FormsService.name);
+  private readonly logger = new Logger(FormsService.name);
 
   constructor(
-    private prisma: PrismaService,
-    private cloudinaryService: CloudinaryService,
+    private readonly prisma: PrismaService,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
+  // ========================================
+  // EQUIVALENCE FORM
+  // ========================================
+
+  /**
+   * Submit equivalence form with optional file upload
+   * @param data - Equivalence form data
+   * @param file - Multer file object (optional)
+   * @param clientId - Client ID from JWT (optional)
+   * @returns Form submission response
+   */
   async submitEquivalenceForm(
     data: EquivalenceFormDto,
-    file?: any, // Multer file object
-    clientId?: string, // Client ID from JWT
-  ) {
-    this.logger.log(`Submitting equivalence form for: ${data.email}`);
+    file?: any,
+    clientId?: string,
+  ): Promise<FormSubmissionResponse> {
+    this.logger.log(
+      formatLogMessage(LOG_MESSAGES.FORM_SUBMITTED, {
+        type: FORM_TYPES.EQUIVALENCE,
+        identifier: data.email,
+      }),
+    );
 
-    let cloudinaryUrl: string | null = null;
+    // Upload file to Cloudinary if provided
+    const uploadResult = await uploadFileToCloudinary(
+      file,
+      this.cloudinaryService,
+      CLOUDINARY_FOLDERS.EQUIVALENCE,
+    );
 
-    // Upload file to Cloudinary if file exists
-    if (file && file.path) {
-      try {
-        const uploadResult = await this.cloudinaryService.uploadFromPath(
-          file.path,
-          'forms/equivalence',
-        );
-        cloudinaryUrl = uploadResult.secure_url;
-        this.logger.log(`File uploaded to Cloudinary: ${cloudinaryUrl}`);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        this.logger.error(`Failed to upload to Cloudinary: ${errorMessage}`);
-        // Continue without file if upload fails
-      }
+    // Create form data
+    const formData = createEquivalenceFormData(data, uploadResult.url);
+
+    // Persist to database
+    await this.persistEquivalenceForm(formData, uploadResult.url, clientId);
+
+    // Update client status if client ID provided
+    if (clientId) {
+      await this.updateClientEquivalence(clientId, uploadResult.url);
     }
 
-    const formData = {
-      type: 'EQUIVALENCE' as const,
-      email: data.email,
-      telephone: data.telephone,
-      prenom: data.prenom,
-      nom: data.nom,
-      adresse: data.adresse,
-      codePostal: data.codePostal,
-      niveau: data.niveau,
-      universite: data.universite,
-      titreLicence: data.titreLicence,
-      titreMaster: data.titreMaster || null,
-      anneeDebut: data.anneeDebut,
-      anneeObtentionLicence: data.anneeObtentionLicence,
-      anneeObtentionMaster: data.anneeObtentionMaster || null,
-      portfolioUrl: cloudinaryUrl,
-      submittedAt: new Date(),
-    };
-
-    // Save to database if forms table exists
-    try {
-      // Persist to DB with client relationship
-      const saved = await (this.prisma as any).formSubmission.create({
-        data: {
-          clientId: clientId || null,
-          type: 'EQUIVALENCE',
-          data: formData,
-          fileUrl: cloudinaryUrl,
-        },
-      });
-      this.logger.log(`Equivalence form persisted (id=${saved.id}, clientId=${clientId})`);
-      
-      // Update client's form tracking status and save folder URL
-      if (clientId) {
-        await this.prisma.client.update({
-          where: { id: clientId },
-          data: {
-            isSendingFormulaireEquivalence: true,
-            equivalenceStatus: 'pending',
-            equivalenceRejectedAt: null,
-            equivalenceRejectionReason: null,
-            folderEquivalence: cloudinaryUrl,
-          },
-        });
-        this.logger.log(`Updated client ${clientId} equivalence form status to pending with folder URL`);
-      }
-    } catch (error) {
-      this.logger.warn('Could not save to database, continuing with notifications');
-    }
-
-    return {
-      success: true,
-      message: 'Equivalence form submitted successfully. We will review your application and contact you soon.',
-      formId: `EQUIV-${Date.now()}`,
-      status: 'pending',
-    };
+    return createFormSubmissionResponse(FORM_TYPES.EQUIVALENCE);
   }
 
+  // ========================================
+  // RESIDENCE FORM
+  // ========================================
+
+  /**
+   * Submit residence form with optional file upload
+   * @param data - Residence form data
+   * @param file - Multer file object (optional)
+   * @param clientId - Client ID from JWT (optional)
+   * @returns Form submission response
+   */
   async submitResidenceForm(
     data: ResidenceFormDto,
-    file?: any, // Multer file object
-    clientId?: string, // Client ID from JWT
-  ) {
-    this.logger.log(`Submitting residence form for: ${data.nomComplet}`);
+    file?: any,
+    clientId?: string,
+  ): Promise<FormSubmissionResponse> {
+    this.logger.log(
+      formatLogMessage(LOG_MESSAGES.FORM_SUBMITTED, {
+        type: FORM_TYPES.RESIDENCE,
+        identifier: data.nomComplet,
+      }),
+    );
 
-    let cloudinaryUrl: string | null = null;
+    // Upload file to Cloudinary if provided
+    const uploadResult = await uploadFileToCloudinary(
+      file,
+      this.cloudinaryService,
+      CLOUDINARY_FOLDERS.RESIDENCE,
+    );
 
-    // Upload file to Cloudinary if file exists
-    if (file && file.path) {
-      try {
-        const uploadResult = await this.cloudinaryService.uploadFromPath(
-          file.path,
-          'forms/residence',
-        );
-        cloudinaryUrl = uploadResult.secure_url;
-        this.logger.log(`File uploaded to Cloudinary: ${cloudinaryUrl}`);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        this.logger.error(`Failed to upload to Cloudinary: ${errorMessage}`);
-        // Continue without file if upload fails
-      }
+    // Create form data
+    const formData = createResidenceFormData(data, uploadResult.url);
+
+    // Persist to database
+    await this.persistResidenceForm(formData, uploadResult.url, clientId);
+
+    // Update client status if client ID provided
+    if (clientId) {
+      await this.updateClientResidence(clientId, uploadResult.url);
     }
 
-    const formData = {
-      type: 'RESIDENCE' as const,
-      nomComplet: data.nomComplet,
-      dateNaissance: data.dateNaissance,
-      paysResidence: data.paysResidence,
-      programme: data.programme,
-      numeroDossier: data.numeroDossier,
-      etape: data.etape,
-      fileUrl: cloudinaryUrl,
-      submittedAt: new Date(),
-    };
-
-    // Persist residence form to DB with client relationship
-    try {
-      const saved = await (this.prisma as any).formSubmission.create({
-        data: {
-          clientId: clientId || null,
-          type: 'RESIDENCE',
-          data: formData,
-          fileUrl: cloudinaryUrl,
-        },
-      });
-      this.logger.log(`Residence form persisted (id=${saved.id}, clientId=${clientId})`);
-      
-      // Update client's form tracking status and save folder URL
-      if (clientId) {
-        await this.prisma.client.update({
-          where: { id: clientId },
-          data: {
-            isSendingFormulaireResidence: true,
-            residenceStatus: 'pending',
-            residenceRejectedAt: null,
-            residenceRejectionReason: null,
-            folderResidence: cloudinaryUrl,
-          },
-        });
-        this.logger.log(`Updated client ${clientId} residence form status to pending with folder URL`);
-      }
-    } catch (error) {
-      this.logger.warn('Could not save residence form to database, continuing');
-    }
-
-    return {
-      success: true,
-      message: 'Residence form submitted successfully. We will process your application and contact you soon.',
-      formId: `RESID-${Date.now()}`,
-      status: 'pending',
-    };
+    return createFormSubmissionResponse(FORM_TYPES.RESIDENCE);
   }
 
+  // ========================================
+  // PARTNER FORM
+  // ========================================
+
+  /**
+   * Submit partner form (no file upload)
+   * @param data - Partner form data
+   * @param clientId - Client ID from JWT (optional)
+   * @returns Form submission response
+   */
   async submitPartnerForm(
     data: PartnerFormDto,
     clientId?: string,
-  ) {
-    this.logger.log(`Submitting partner form for: ${data.agencyName}`);
+  ): Promise<FormSubmissionResponse> {
+    this.logger.log(
+      formatLogMessage(LOG_MESSAGES.FORM_SUBMITTED, {
+        type: FORM_TYPES.PARTNER,
+        identifier: data.agencyName,
+      }),
+    );
 
-    const formData = {
-      type: 'PARTNER' as const,
-      agencyName: data.agencyName,
-      managerName: data.managerName,
-      email: data.email,
-      phone: data.phone,
-      address: data.address || null,
-      city: data.city || null,
-      clientCount: data.clientCount || null,
-      message: data.message || null,
-      submittedAt: new Date(),
-    };
+    // Create form data
+    const formData = createPartnerFormData(data);
 
-    // Persist partner form to DB with client relationship
-    try {
-      const saved = await (this.prisma as any).formSubmission.create({
-        data: {
-          clientId: clientId || null,
-          type: 'PARTNER',
-          data: formData,
-          fileUrl: null,
-        },
-      });
-      this.logger.log(`Partner form persisted (id=${saved.id}, clientId=${clientId})`);
-      
-      // Update client's form tracking status
-      if (clientId) {
-        await this.prisma.client.update({
-          where: { id: clientId },
-          data: {
-            isSendingPartners: true,
-            partnerStatus: 'pending',
-            partnerRejectedAt: null,
-            partnerRejectionReason: null,
-          },
-        });
-        this.logger.log(`Updated client ${clientId} partner form status to pending`);
-      }
-    } catch (error) {
-      this.logger.warn('Could not save partner form to database, continuing');
+    // Persist to database
+    await this.persistPartnerForm(formData, clientId);
+
+    // Update client status if client ID provided
+    if (clientId) {
+      await this.updateClientPartner(clientId);
     }
 
-    return {
-      success: true,
-      message: 'Partner application submitted successfully. We will contact you within 24 hours.',
-      formId: `PARTNER-${Date.now()}`,
-      status: 'pending',
-    };
+    return createFormSubmissionResponse(FORM_TYPES.PARTNER);
   }
 
-  async getAllForms() {
+  // ========================================
+  // FORM RETRIEVAL
+  // ========================================
+
+  /**
+   * Get all form submissions with client information
+   * @returns Array of form submissions
+   */
+  async getAllForms(): Promise<FormSubmission[]> {
     try {
       const forms = await (this.prisma as any).formSubmission.findMany({
         include: {
@@ -248,12 +197,17 @@ export class FormsService {
       });
       return forms;
     } catch (error) {
-      this.logger.error('Failed to fetch forms:', error);
+      this.logger.error(LOG_MESSAGES.FETCH_FORMS_FAILED, error);
       return [];
     }
   }
 
-  async getFormById(id: string) {
+  /**
+   * Get single form submission by ID
+   * @param id - Form submission ID
+   * @returns Form submission or null
+   */
+  async getFormById(id: string): Promise<FormSubmission | null> {
     try {
       const form = await (this.prisma as any).formSubmission.findUnique({
         where: { id },
@@ -273,8 +227,164 @@ export class FormsService {
       });
       return form;
     } catch (error) {
-      this.logger.error(`Failed to fetch form ${id}:`, error);
+      this.logger.error(
+        formatLogMessage(LOG_MESSAGES.FETCH_FORM_FAILED, { id }),
+        error,
+      );
       return null;
+    }
+  }
+
+  // ========================================
+  // PRIVATE HELPER METHODS
+  // ========================================
+
+  /**
+   * Persist equivalence form to database
+   */
+  private async persistEquivalenceForm(
+    formData: EquivalenceFormData,
+    fileUrl: string | null,
+    clientId?: string,
+  ): Promise<void> {
+    try {
+      const saved = await (this.prisma as any).formSubmission.create({
+        data: {
+          clientId: clientId || null,
+          type: FORM_TYPES.EQUIVALENCE,
+          data: formData,
+          fileUrl: fileUrl,
+        },
+      });
+
+      this.logger.log(
+        formatLogMessage(LOG_MESSAGES.FORM_PERSISTED, {
+          type: FORM_TYPES.EQUIVALENCE,
+          id: saved.id,
+          clientId: clientId || 'none',
+        }),
+      );
+    } catch (error) {
+      this.logger.warn(
+        formatLogMessage(LOG_MESSAGES.DATABASE_SAVE_FAILED, {
+          type: FORM_TYPES.EQUIVALENCE,
+        }),
+      );
+    }
+  }
+
+  /**
+   * Persist residence form to database
+   */
+  private async persistResidenceForm(
+    formData: ResidenceFormData,
+    fileUrl: string | null,
+    clientId?: string,
+  ): Promise<void> {
+    try {
+      const saved = await (this.prisma as any).formSubmission.create({
+        data: {
+          clientId: clientId || null,
+          type: FORM_TYPES.RESIDENCE,
+          data: formData,
+          fileUrl: fileUrl,
+        },
+      });
+
+      this.logger.log(
+        formatLogMessage(LOG_MESSAGES.FORM_PERSISTED, {
+          type: FORM_TYPES.RESIDENCE,
+          id: saved.id,
+          clientId: clientId || 'none',
+        }),
+      );
+    } catch (error) {
+      this.logger.warn(
+        formatLogMessage(LOG_MESSAGES.DATABASE_SAVE_FAILED, {
+          type: FORM_TYPES.RESIDENCE,
+        }),
+      );
+    }
+  }
+
+  /**
+   * Persist partner form to database
+   */
+  private async persistPartnerForm(
+    formData: PartnerFormData,
+    clientId?: string,
+  ): Promise<void> {
+    try {
+      const saved = await (this.prisma as any).formSubmission.create({
+        data: {
+          clientId: clientId || null,
+          type: FORM_TYPES.PARTNER,
+          data: formData,
+          fileUrl: null,
+        },
+      });
+
+      this.logger.log(
+        formatLogMessage(LOG_MESSAGES.FORM_PERSISTED, {
+          type: FORM_TYPES.PARTNER,
+          id: saved.id,
+          clientId: clientId || 'none',
+        }),
+      );
+    } catch (error) {
+      this.logger.warn(
+        formatLogMessage(LOG_MESSAGES.DATABASE_SAVE_FAILED, {
+          type: FORM_TYPES.PARTNER,
+        }),
+      );
+    }
+  }
+
+  /**
+   * Update client equivalence form status
+   */
+  private async updateClientEquivalence(
+    clientId: string,
+    fileUrl: string | null,
+  ): Promise<void> {
+    try {
+      await updateClientEquivalenceStatus(this.prisma, clientId, fileUrl);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to update client ${clientId} equivalence status`,
+        error,
+      );
+    }
+  }
+
+  /**
+   * Update client residence form status
+   */
+  private async updateClientResidence(
+    clientId: string,
+    fileUrl: string | null,
+  ): Promise<void> {
+    try {
+      await updateClientResidenceStatus(this.prisma, clientId, fileUrl);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to update client ${clientId} residence status`,
+        error,
+      );
+    }
+  }
+
+  /**
+   * Update client partner form status
+   */
+  private async updateClientPartner(clientId: string): Promise<void> {
+    try {
+      await updateClientPartnerStatus(this.prisma, clientId);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to update client ${clientId} partner status`,
+        error,
+      );
     }
   }
 }
