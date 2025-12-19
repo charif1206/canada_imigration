@@ -15,8 +15,7 @@ export class AdminService {
       validatedPartner,
       pendingEquivalence,
       pendingResidence,
-      pendingPartner,
-      unreadMessages
+      pendingPartner
     ] = await Promise.all([
       this.prisma.client.count(),
       this.prisma.client.count({ where: { equivalenceStatus: 'validated' } }),
@@ -25,7 +24,6 @@ export class AdminService {
       this.prisma.client.count({ where: { equivalenceStatus: 'pending' } }),
       this.prisma.client.count({ where: { residenceStatus: 'pending' } }),
       this.prisma.client.count({ where: { partnerStatus: 'pending' } }),
-      this.prisma.message.count({ where: { isRead: false } }),
     ]);
 
     return {
@@ -36,30 +34,7 @@ export class AdminService {
       pendingEquivalence,
       pendingResidence,
       pendingPartner,
-      unreadMessages,
     };
-  }
-
-  async getAllMessages() {
-    return this.prisma.message.findMany({
-      include: {
-        client: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-  }
-
-  async markMessageAsRead(messageId: string) {
-    return this.prisma.message.update({
-      where: { id: messageId },
-      data: { isRead: true },
-    });
   }
 
   async getRecentClients(limit: number = 10) {
@@ -67,12 +42,6 @@ export class AdminService {
     return this.prisma.client.findMany({
       take: limit,
       orderBy: { updatedAt: 'desc' },
-      include: {
-        messages: {
-          take: 1,
-          orderBy: { createdAt: 'desc' },
-        },
-      },
     });
   }
 

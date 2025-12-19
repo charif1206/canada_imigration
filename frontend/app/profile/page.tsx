@@ -1,135 +1,199 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/useAuth';
-import Link from 'next/link';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { ProfileHeader, ProfileInfoCard } from '@/components/profile';
 
 const ProfilePage: React.FC = () => {
-    const { client, logout } = useAuth();
+    const { client, logout, refreshAuth } = useAuth();
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    // Auto-refresh profile data when page loads
+    useEffect(() => {
+        const autoRefresh = async () => {
+            if (refreshAuth) {
+                await refreshAuth();
+            }
+        };
+        autoRefresh();
+    }, [refreshAuth]);
+
+    // Periodic auto-refresh every 30 seconds to sync with admin changes
+    useEffect(() => {
+        const interval = setInterval(async () => {
+            if (refreshAuth && !isRefreshing) {
+                await refreshAuth();
+                console.log('✅ Auto-refreshed profile data');
+            }
+        }, 30000); // 30 seconds
+
+        return () => clearInterval(interval);
+    }, [refreshAuth, isRefreshing]);
+
+    // Manual refresh handler
+    const handleRefresh = async () => {
+        if (!refreshAuth) return;
+        setIsRefreshing(true);
+        try {
+            await refreshAuth();
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
+    if (!client) return null;
 
     return (
         <ProtectedRoute>
-            <div className="container mx-auto px-4 py-12">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
                 <div className="max-w-4xl mx-auto">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-800">👤 Mon Profil</h1>
-                        <p className="text-gray-600 mt-1">Gérez vos informations personnelles</p>
-                    </div>
-                    <button
-                        onClick={logout}
-                        className="flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors shadow-md hover:shadow-lg"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                        Déconnexion
-                    </button>
-                </div>
+                    <ProfileHeader onLogout={logout} />
+                    <ProfileInfoCard
+                        name={client.name}
+                        email={client.email}
+                        isValidated={client.isValidated}
+                        createdAt={client.createdAt}
+                        validatedAt={client.validatedAt}
+                    />
 
-                {/* Profile Card */}
-                <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
-                    {/* Profile Header with Icon */}
-                    <div className="bg-linear-to-r from-blue-900 to-red-600 p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6">
-                        <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shrink-0">
-                            <svg className="w-16 h-16 text-blue-900" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path>
-                            </svg>
+                    {/* Service Validations Status */}
+                    <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                <span className="text-2xl">🎯</span>
+                                Service Validations
+                            </h3>
+                            <button
+                                onClick={handleRefresh}
+                                disabled={isRefreshing}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <svg 
+                                    className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path 
+                                        strokeLinecap="round" 
+                                        strokeLinejoin="round" 
+                                        strokeWidth={2} 
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+                                    />
+                                </svg>
+                                {isRefreshing ? 'Refreshing...' : 'Refresh Status'}
+                            </button>
                         </div>
-                        <div className="text-white text-center sm:text-left">
-                            <h2 className="text-2xl font-bold">{client?.name}</h2>
-                            <p className="text-blue-100 mt-1">{client?.email}</p>
-                            <div className="mt-3 inline-flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full">
-                                {client?.isValidated ? (
-                                    <>
-                                        <span className="text-green-300 text-xl">✓</span>
-                                        <span className="text-sm font-medium">Profil validé</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className="text-yellow-300 text-xl">⏳</span>
-                                        <span className="text-sm font-medium">En attente de validation</span>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Profile Information */}
-                    <div className="p-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Left Column */}
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-800 mb-6">Informations personnelles</h3>
-                                
-                                <div className="space-y-6">
-                                    {/* Email */}
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Email</label>
-                                        <p className="text-gray-800 mt-1 p-3 bg-gray-50 rounded">{client?.email}</p>
-                                    </div>
-
-                                    {/* Phone Number */}
-                                    {/* <div>
-                                        <label className="text-sm font-medium text-gray-600">Numéro de téléphone</label>
-                                        <p className="text-gray-800 mt-1 p-3 bg-gray-50 rounded">{client?.phone || 'Non renseigné'}</p>
-                                    </div> */}
-
-                                    {/* Country of Residence */}
-                                    {/* <div>
-                                        <label className="text-sm font-medium text-gray-600">Pays de résidence</label>
-                                        <p className="text-gray-800 mt-1 p-3 bg-gray-50 rounded">{client?.countryOfResidence || 'Non renseigné'}</p>
-                                    </div> */}
-
-                                    {/* Member Since */}
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Membre depuis</label>
-                                        <p className="text-gray-800 mt-1 p-3 bg-gray-50 rounded">
-                                            {client?.createdAt && new Date(client.createdAt).toLocaleDateString('fr-FR')}
-                                        </p>
-                                    </div>
+                        <div className="space-y-3">
+                            {/* Partner Application */}
+                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <div>
+                                    <p className="font-semibold text-gray-800">🤝 Partner Application</p>
+                                    <p className="text-xs text-gray-500 mt-1">Partner Program Service</p>
                                 </div>
+                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                    (client as any).partnerStatus === 'validated' 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : (client as any).partnerStatus === 'rejected' 
+                                        ? 'bg-red-100 text-red-800' 
+                                        : (client as any).partnerStatus === 'pending'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-gray-100 text-gray-600'
+                                }`}>
+                                    {(client as any).partnerStatus === 'validated' ? '✅ Validated' : 
+                                     (client as any).partnerStatus === 'rejected' ? '❌ Rejected' : 
+                                     (client as any).partnerStatus === 'pending' ? '⏳ Pending' : '⭕ Not Requested'}
+                                </span>
                             </div>
 
-                            {/* Right Column */}
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-800 mb-6">Informations d&apos;immigration</h3>
-                                
-                                <div className="space-y-6">
-                                    {/* Passport Number */}
-                                    {/* <div>
-                                        <label className="text-sm font-medium text-gray-600">Numéro de passeport</label>
-                                        <p className="text-gray-800 mt-1 p-3 bg-gray-50 rounded">{client?.passportNumber || 'Non renseigné'}</p>
-                                    </div> */}
-
-                                    {/* Validation Status */}
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Statut de validation</label>
-                                        <p className="text-gray-800 mt-1 p-3 bg-gray-50 rounded">
-                                            {client?.isValidated ? '✅ Validé' : '⏳ En attente'}
-                                        </p>
-                                    </div>
-
-                                    {/* Validated At */}
-                                    {client?.validatedAt && (
-                                        <div>
-                                            <label className="text-sm font-medium text-gray-600">Validé le</label>
-                                            <p className="text-gray-800 mt-1 p-3 bg-gray-50 rounded">
-                                                {new Date(client.validatedAt).toLocaleDateString('fr-FR')}
-                                            </p>
-                                        </div>
-                                    )}
+                            {/* Equivalence Application */}
+                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <div>
+                                    <p className="font-semibold text-gray-800">🎓 Équivalence de diplôme</p>
+                                    <p className="text-xs text-gray-500 mt-1">Diploma Equivalence Service</p>
                                 </div>
+                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                    (client as any).equivalenceStatus === 'validated' 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : (client as any).equivalenceStatus === 'rejected' 
+                                        ? 'bg-red-100 text-red-800' 
+                                        : (client as any).equivalenceStatus === 'pending'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-gray-100 text-gray-600'
+                                }`}>
+                                    {(client as any).equivalenceStatus === 'validated' ? '✅ Validated' : 
+                                     (client as any).equivalenceStatus === 'rejected' ? '❌ Rejected' : 
+                                     (client as any).equivalenceStatus === 'pending' ? '⏳ Pending' : '⭕ Not Requested'}
+                                </span>
+                            </div>
+
+                            {/* Profile Evaluation */}
+                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <div>
+                                    <p className="font-semibold text-gray-800">🔍 Évaluation de profil</p>
+                                    <p className="text-xs text-gray-500 mt-1">Profile Evaluation Service</p>
+                                </div>
+                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                    (client as any).profileEvaluationStatus === 'validated' 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : (client as any).profileEvaluationStatus === 'rejected' 
+                                        ? 'bg-red-100 text-red-800' 
+                                        : (client as any).profileEvaluationStatus === 'pending'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-gray-100 text-gray-600'
+                                }`}>
+                                    {(client as any).profileEvaluationStatus === 'validated' ? '✅ Validated' : 
+                                     (client as any).profileEvaluationStatus === 'rejected' ? '❌ Rejected' : 
+                                     (client as any).profileEvaluationStatus === 'pending' ? '⏳ Pending' : '⭕ Not Requested'}
+                                </span>
+                            </div>
+
+                            {/* TCF Preparation */}
+                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <div>
+                                    <p className="font-semibold text-gray-800">📚 Préparation TCF Canada</p>
+                                    <p className="text-xs text-gray-500 mt-1">TCF Canada Preparation Service</p>
+                                </div>
+                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                    (client as any).tcfPreparationStatus === 'validated' 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : (client as any).tcfPreparationStatus === 'rejected' 
+                                        ? 'bg-red-100 text-red-800' 
+                                        : (client as any).tcfPreparationStatus === 'pending'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-gray-100 text-gray-600'
+                                }`}>
+                                    {(client as any).tcfPreparationStatus === 'validated' ? '✅ Validated' : 
+                                     (client as any).tcfPreparationStatus === 'rejected' ? '❌ Rejected' : 
+                                     (client as any).tcfPreparationStatus === 'pending' ? '⏳ Pending' : '⭕ Not Requested'}
+                                </span>
+                            </div>
+
+                            {/* Residence Application */}
+                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <div>
+                                    <p className="font-semibold text-gray-800">🏠 Résidence Permanente</p>
+                                    <p className="text-xs text-gray-500 mt-1">Permanent Residence Service</p>
+                                </div>
+                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                    (client as any).residenceStatus === 'validated' 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : (client as any).residenceStatus === 'rejected' 
+                                        ? 'bg-red-100 text-red-800' 
+                                        : (client as any).residenceStatus === 'pending'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-gray-100 text-gray-600'
+                                }`}>
+                                    {(client as any).residenceStatus === 'validated' ? '✅ Validated' : 
+                                     (client as any).residenceStatus === 'rejected' ? '❌ Rejected' : 
+                                     (client as any).residenceStatus === 'pending' ? '⏳ Pending' : '⭕ Not Requested'}
+                                </span>
                             </div>
                         </div>
                     </div>
                 </div>
-
-            
             </div>
-        </div>
         </ProtectedRoute>
     );
 };

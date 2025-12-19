@@ -33,13 +33,13 @@ const Header: React.FC = () => {
     return (
         <header className="bg-white shadow-md fixed w-full z-50">
             <div className="container mx-auto flex justify-between items-center p-4">
-                <Link href="/" className="flex items-center space-x-2" onClick={closeMenu}>
-                    <span className="text-xl font-bold text-blue-900">Canada Guide</span>
-                    <span className="text-xl font-bold text-red-600">Immigration</span>
+                <Link href="/" className="flex items-center space-x-1 sm:space-x-2" onClick={closeMenu}>
+                    <span className="text-lg sm:text-xl font-bold text-blue-900">Canada Guide</span>
+                    <span className="text-lg sm:text-xl font-bold text-red-600">Immigration</span>
                 </Link>
 
                 <div className="flex items-center md:hidden">
-                    <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-700 focus:outline-none">
+                    <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-700 focus:outline-none p-2 min-h-[44px] min-w-[44px] flex items-center justify-center">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={isMenuOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16m-7 6h7"}></path>
                         </svg>
@@ -51,7 +51,7 @@ const Header: React.FC = () => {
                         <ul className="flex flex-col p-4 md:p-0 md:flex-row md:space-x-8 font-medium md:justify-center">
                             <li><NavLinkItem href="/" onClick={closeMenu}>Accueil</NavLinkItem></li>
                             <li><NavLinkItem href="/services" onClick={closeMenu}>Services</NavLinkItem></li>
-                            <li><NavLinkItem href="/forms" onClick={closeMenu}>Formulaires</NavLinkItem></li>
+                            {/* <li><NavLinkItem href="/forms" onClick={closeMenu}>Formulaires</NavLinkItem></li> */}
                             <li><NavLinkItem href="/partners" onClick={closeMenu}>Agences partenaires</NavLinkItem></li>
                             <li><NavLinkItem href="/contact" onClick={closeMenu}>Contact</NavLinkItem></li>
                         </ul>
@@ -78,7 +78,7 @@ const Header: React.FC = () => {
                             <Link
                                 href="/login"
                                 onClick={closeMenu}
-                                className="block md:inline-block px-4 py-2 md:px-6 md:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-center m-4 md:m-0"
+                                className="px-4 py-3 md:px-6 md:py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-center m-4 md:m-0 min-h-[44px] flex items-center justify-center"
                             >
                                 🔑 Se connecter
                             </Link>

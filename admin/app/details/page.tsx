@@ -504,6 +504,76 @@ function DetailsPageContent() {
                 )}
               </div>
             </div>
+
+            {/* Additional Services Status */}
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                <span className="bg-purple-100 text-purple-600 rounded-full p-2 mr-3">🎯</span>
+                Service Validations
+              </h3>
+              <div className="space-y-3">
+                {/* Profile Evaluation */}
+                {(clientData as any).profileEvaluationStatus && (
+                  <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-800">🔍 Évaluation de profil</p>
+                        <p className="text-xs text-gray-500 mt-1">Profile Evaluation Service</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        (clientData as any).profileEvaluationStatus === 'validated' 
+                          ? 'bg-green-100 text-green-800' 
+                          : (clientData as any).profileEvaluationStatus === 'rejected' 
+                          ? 'bg-red-100 text-red-800' 
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {(clientData as any).profileEvaluationStatus === 'validated' ? '✅ Validated' : 
+                         (clientData as any).profileEvaluationStatus === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
+                      </span>
+                    </div>
+                    {(clientData as any).profileEvaluationRejectionReason && (
+                      <p className="text-xs text-red-600 mt-2 pl-1">
+                        Rejection Reason: {(clientData as any).profileEvaluationRejectionReason}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* TCF Preparation */}
+                {(clientData as any).tcfPreparationStatus && (
+                  <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-800">📚 Préparation TCF Canada</p>
+                        <p className="text-xs text-gray-500 mt-1">TCF Canada Preparation Service</p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        (clientData as any).tcfPreparationStatus === 'validated' 
+                          ? 'bg-green-100 text-green-800' 
+                          : (clientData as any).tcfPreparationStatus === 'rejected' 
+                          ? 'bg-red-100 text-red-800' 
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {(clientData as any).tcfPreparationStatus === 'validated' ? '✅ Validated' : 
+                         (clientData as any).tcfPreparationStatus === 'rejected' ? '❌ Rejected' : '⏳ Pending'}
+                      </span>
+                    </div>
+                    {(clientData as any).tcfPreparationRejectionReason && (
+                      <p className="text-xs text-red-600 mt-2 pl-1">
+                        Rejection Reason: {(clientData as any).tcfPreparationRejectionReason}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {!(clientData as any).profileEvaluationStatus && 
+                 !(clientData as any).tcfPreparationStatus && (
+                  <div className="text-center py-4 text-gray-500 text-sm">
+                    No additional services yet
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -544,8 +544,12 @@ export default function AdminDashboard() {
                   <p className="font-semibold">{user.username}</p>
                   <p className="text-xs text-purple-200 capitalize">{user.role}</p>
                 </div>
-              )}
-              {user?.role === 'moderator' && (
+              )}              <Link
+                href="/blogs"
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors font-medium"
+              >
+                📝 Manage Blog Posts
+              </Link>              {user?.role === 'moderator' && (
                 <Link
                   href="/addadmin"
                   className="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition-colors font-medium"

@@ -8,94 +8,136 @@ datasource db {
 }
 
 model Client {
+  // Core identity fields
   id                                String    @id @default(uuid())
   name                              String
   email                             String    @unique
   password                          String    @default("$2b$10$defaultpasswordhash")
+  
+  // Contact and personal information
   phone                             String?
   countryOfResidence                String?
   passportNumber                    String?
   nationality                       String?
-  // Email verification fields
+  
+  // Email verification
   isEmailVerified                   Boolean   @default(false)
   emailVerificationToken            String?   @unique
   emailVerificationExpires          DateTime?
-  // Password reset fields
+  
+  // Password reset
   resetPasswordToken                String?   @unique
   resetPasswordExpires              DateTime?
-  // Form submission tracking
+  
+  // Equivalence form submission tracking
   isSendingFormulaireEquivalence    Boolean   @default(false)
-  equivalenceStatus                 String?   // "pending", "validated", "rejected"
+  equivalenceStatus                 String?
   equivalenceRejectedAt             DateTime?
   equivalenceRejectionReason        String?
   folderEquivalence                 String?
-  //
+  
+  // Residence form submission tracking
   isSendingFormulaireResidence      Boolean   @default(false)
-  residenceStatus                   String?   // "pending", "validated", "rejected"
+  residenceStatus                   String?
   residenceRejectedAt               DateTime?
   residenceRejectionReason          String?
   folderResidence                   String?
-  //
+  
+  // Partner submission tracking
   isSendingPartners                 Boolean   @default(false)
-  partnerStatus                     String?   // "pending", "validated", "rejected"
+  partnerStatus                     String?
   partnerRejectedAt                 DateTime?
   partnerRejectionReason            String?
-  //
+  
+  // Profile evaluation service
+  profileEvaluationStatus           String?
+  profileEvaluationRejectedAt       DateTime?
+  profileEvaluationRejectionReason  String?
+  
+  // TCF preparation service
+  tcfPreparationStatus              String?
+  tcfPreparationRejectedAt          DateTime?
+  tcfPreparationRejectionReason     String?
+  
+  // Timestamps
   createdAt                         DateTime  @default(now())
   updatedAt                         DateTime  @updatedAt
-  messages                          Message[]
+  
+  // Relations
   formSubmissions                   FormSubmission[]
 }
 
 model Admin {
+  // Core identity fields
   id                        String   @id @default(uuid())
   username                  String   @unique
-  password                  String
   email                     String?
+  password                  String
   role                      String   @default("admin")
-  // Email verification fields
+  
+  // Email verification
   isEmailVerified           Boolean  @default(false)
   emailVerificationToken    String?  @unique
   emailVerificationExpires  DateTime?
-  // Password reset fields
+  
+  // Password reset
   resetPasswordToken        String?  @unique
   resetPasswordExpires      DateTime?
+  
+  // Timestamps
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 }
 
-model Message {
+model FormSubmission {
+  // Core identity
   id        String   @id @default(uuid())
+  
+  // Form data
+  type      String
+  data      Json
+  fileUrl   String?
+  
+  // Client relationship
   clientId  String
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  subject   String
-  content   String
-  isRead    Boolean  @default(false)
+  
+  // Timestamps
   createdAt DateTime @default(now())
   
   @@index([clientId])
 }
 
-// Forms submitted by clients (equivalence / residence / others).
-// Uses Json column for flexible data storage, but maintains referential integrity with Client.
-// When a client is deleted, all their form submissions are automatically deleted (cascade).
-model FormSubmission {
-  id        String   @id @default(uuid())
-  clientId  String   // Foreign key to Client
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  type      String   // "EQUIVALENCE" or "RESIDENCE"
-  data      Json     // Stores all form fields (flexible structure)
-  fileUrl   String?  // URL to uploaded file (portfolio, supporting docs, etc)
-  createdAt DateTime @default(now())
-  
-  @@index([clientId])  // Index for fast queries: "find all forms for client X"
-}
-
-// Partner applications from travel agencies
 model PartnerSubmission {
+  // Core identity
   id        String   @id @default(uuid())
+  
+  // Submission data
   type      String   @default("PARTNER")
-  data      Json     // Stores all partner application fields (agencyName, managerName, email, phone, etc)
+  data      Json
+  
+  // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Post {
+  // Core identity
+  id        String   @id @default(uuid())
+  
+  // Post content
+  title     String
+  content   String   @db.Text
+  imgUrl    String
+  
+  // Engagement and publication
+  likes     String[] @default([])
+  published Boolean  @default(true)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published])
+  @@index([createdAt])
 }

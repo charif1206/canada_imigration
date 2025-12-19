@@ -21,22 +21,16 @@ Authorization: Bearer {{adminToken}}
 ### Expected Response:
 ### {
 ###   "totalClients": 10,
-###   "validatedClients": 3,
-###   "pendingClients": 7,
-###   "unreadMessages": 5
+###   "validatedEquivalence": 3,
+###   "validatedResidence": 2,
+###   "validatedPartner": 1,
+###   "pendingEquivalence": 5,
+###   "pendingResidence": 4,
+###   "pendingPartner": 3
 ### }
 
 ### ========================================
-### Test 2: Get All Messages (Admin View)
-### Includes client information
-### ========================================
-GET {{baseUrl}}/admin/messages
-Authorization: Bearer {{adminToken}}
-
-### Expected: Array of messages with client details
-
-### ========================================
-### Test 3: Get Recent Clients
+### Test 2: Get Recent Clients
 ### Default limit: 10
 ### ========================================
 GET {{baseUrl}}/admin/clients/recent
@@ -45,7 +39,7 @@ Authorization: Bearer {{adminToken}}
 ### Expected: Array of 10 most recent clients
 
 ### ========================================
-### Test 4: Get Recent Clients with Custom Limit
+### Test 3: Get Recent Clients with Custom Limit
 ### ========================================
 GET {{baseUrl}}/admin/clients/recent?limit=5
 Authorization: Bearer {{adminToken}}
@@ -53,7 +47,7 @@ Authorization: Bearer {{adminToken}}
 ### Expected: Array of 5 most recent clients
 
 ### ========================================
-### Test 5: Get Pending Validations
+### Test 4: Get Pending Validations
 ### Clients waiting for admin approval
 ### ========================================
 GET {{baseUrl}}/admin/clients/pending
@@ -62,7 +56,7 @@ Authorization: Bearer {{adminToken}}
 ### Expected: Array of non-validated clients
 
 ### ========================================
-### Test 6: Access Dashboard Without Token
+### Test 5: Access Dashboard Without Token
 ### Should fail with 401
 ### ========================================
 GET {{baseUrl}}/admin/dashboard
@@ -70,7 +64,7 @@ GET {{baseUrl}}/admin/dashboard
 ### Expected: 401 Unauthorized
 
 ### ========================================
-### Test 7: Access Dashboard With Invalid Token
+### Test 6: Access Dashboard With Invalid Token
 ### Should fail with 401
 ### ========================================
 GET {{baseUrl}}/admin/dashboard
@@ -79,17 +73,7 @@ Authorization: Bearer invalid_token_xyz123
 ### Expected: 401 Unauthorized
 
 ### ========================================
-### Test 8: Mark Message as Read
-### Replace {messageId} with actual message ID
-### ========================================
-@messageId = replace_with_actual_message_id
-PATCH {{baseUrl}}/admin/messages/{{messageId}}/read
-Authorization: Bearer {{adminToken}}
-
-### Expected: Message marked as read
-
-### ========================================
-### Test 9: Get Dashboard Stats (Check Performance)
+### Test 7: Get Dashboard Stats (Check Performance)
 ### Run multiple times to check response time
 ### ========================================
 GET {{baseUrl}}/admin/dashboard
@@ -98,7 +82,7 @@ Authorization: Bearer {{adminToken}}
 ### Expected: Response time < 500ms for small dataset
 
 ### ========================================
-### Test 10: Get Recent Clients with Large Limit
+### Test 8: Get Recent Clients with Large Limit
 ### Test pagination needs
 ### ========================================
 GET {{baseUrl}}/admin/clients/recent?limit=100
@@ -110,17 +94,14 @@ Authorization: Bearer {{adminToken}}
 ### ========================================
 ### Success Criteria:
 ### ✅ Test 1: Returns dashboard statistics
-### ✅ Test 2: Returns all messages with client info
-### ✅ Test 3-4: Returns recent clients (different limits)
-### ✅ Test 5: Returns pending validations only
-### ✅ Tests 6-7: Return 401 Unauthorized
-### ✅ Test 8: Message status updated
-### ✅ Test 9: Response time acceptable
-### ✅ Test 10: Large limit handled correctly
+### ✅ Test 2-3: Returns recent clients (different limits)
+### ✅ Test 4: Returns pending validations only
+### ✅ Tests 5-6: Return 401 Unauthorized
+### ✅ Test 7: Response time acceptable
+### ✅ Test 8: Large limit handled correctly
 ### 
 ### Performance Benchmarks:
 ### - Dashboard stats: < 500ms
 ### - Recent clients (10): < 200ms
-### - All messages: < 1s (depends on count)
 ### - Pending validations: < 500ms
 ### ========================================

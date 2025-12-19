@@ -154,7 +154,37 @@ export class ClientsService {
 
     const client = await this.prisma.client.findUnique({
       where: { id: clientId },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        countryOfResidence: true,
+        passportNumber: true,
+        nationality: true,
+        isEmailVerified: true,
+        isSendingFormulaireEquivalence: true,
+        equivalenceStatus: true,
+        equivalenceRejectedAt: true,
+        equivalenceRejectionReason: true,
+        folderEquivalence: true,
+        isSendingFormulaireResidence: true,
+        residenceStatus: true,
+        residenceRejectedAt: true,
+        residenceRejectionReason: true,
+        folderResidence: true,
+        isSendingPartners: true,
+        partnerStatus: true,
+        partnerRejectedAt: true,
+        partnerRejectionReason: true,
+        profileEvaluationStatus: true,
+        profileEvaluationRejectedAt: true,
+        profileEvaluationRejectionReason: true,
+        tcfPreparationStatus: true,
+        tcfPreparationRejectedAt: true,
+        tcfPreparationRejectionReason: true,
+        createdAt: true,
+        updatedAt: true,
         messages: {
           orderBy: { createdAt: 'desc' },
           take: 10,
@@ -166,9 +196,7 @@ export class ClientsService {
       throw new NotFoundException(`Client profile not found. Your session may have expired or the account was deleted. Please log in again.`);
     }
 
-    // Remove password from response
-    const { password, ...clientData } = client as any;
-    return clientData;
+    return client;
   }
 
   async getAllClients(page: number = 1, limit: number = 10) {

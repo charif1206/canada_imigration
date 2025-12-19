@@ -132,7 +132,7 @@ export default function FormValidationModal({
 
     if (formType === 'equivalence') {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 text-black md:grid-cols-2 gap-4">
           <div>
             <p className="text-sm text-gray-500">First Name</p>
             <p className="font-semibold text-gray-800">{data.prenom || 'N/A'}</p>

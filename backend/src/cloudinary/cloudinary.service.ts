@@ -4,6 +4,32 @@ import * as streamifier from 'streamifier';
 import * as fs from 'fs';
 import * as path from 'path';
 
+/**
+ * CloudinaryService - Handles file uploads to Cloudinary CDN
+ * 
+ * Used For:
+ * 1. Blog post images (uploadFromBuffer)
+ * 2. Form attachments like portfolios, CVs (uploadFromPath)
+ * 3. Client documents (PDFs, images, etc.)
+ * 
+ * Real Usage Examples in This Project:
+ * 
+ * ✅ BLOGS MODULE (blogs.service.ts):
+ *    - Upload blog post images when creating/updating posts
+ *    - Delete old images when updating posts
+ * 
+ * ✅ FORMS MODULE (forms.service.ts):
+ *    - Upload equivalence form portfolios (PDF files)
+ *    - Upload residence form documents
+ * 
+ * Flow Example:
+ * 1. User uploads file via frontend form
+ * 2. Multer middleware receives file (temp storage or buffer)
+ * 3. CloudinaryService uploads to cloud
+ * 4. Returns secure URL (https://res.cloudinary.com/...)
+ * 5. URL saved to database
+ * 6. Temp file deleted from server
+ */
 @Injectable()
 export class CloudinaryService {
   private logger = new Logger(CloudinaryService.name);
@@ -11,11 +37,25 @@ export class CloudinaryService {
   constructor(@Inject('CLOUDINARY') private cloudinaryInstance: typeof cloudinary) {}
 
   /**
-   * Upload file from buffer to Cloudinary
-   * @param fileBuffer File buffer
-   * @param folder Cloudinary folder path (e.g., 'forms/equivalence')
-   * @param fileName Original file name
-   * @returns Upload result with URL
+   * Upload file from memory buffer to Cloudinary
+   * 
+   * USE CASE: Blog post images uploaded via form (file in memory)
+   * 
+   * Example Usage in blogs.service.ts:
+   * ```typescript
+   * const uploadResult = await this.cloudinaryService.uploadFromBuffer(
+   *   imageFile.buffer,           // File buffer from Multer
+   *   'blog-posts',               // Cloudinary folder
+   *   imageFile.originalname      // Original filename
+   * );
+   * const imageUrl = uploadResult.secure_url;
+   * // Save imageUrl to database: Post.imgUrl = imageUrl
+   * ```
+   * 
+   * @param fileBuffer - File content in memory (from Multer)
+   * @param folder - Cloudinary folder path (e.g., 'blog-posts', 'forms/equivalence')
+   * @param fileName - Original file name (used for public_id)
+   * @returns Upload result with secure_url property
    */
   async uploadFromBuffer(
     fileBuffer: Buffer,
@@ -45,10 +85,30 @@ export class CloudinaryService {
   }
 
   /**
-   * Upload file from disk to Cloudinary
-   * @param filePath Local file path
-   * @param folder Cloudinary folder path (e.g., 'forms/equivalence')
-   * @returns Upload result with URL
+   * Upload file from disk (temp storage) to Cloudinary
+   * 
+   * USE CASE: Form documents (PDFs, portfolios) saved temporarily to disk
+   * 
+   * Example Usage in forms.service.ts:
+   * ```typescript
+   * // Multer saves file to: uploads/forms/portfolio.pdf
+   * const uploadResult = await this.cloudinaryService.uploadFromPath(
+   *   file.path,              // 'uploads/forms/portfolio.pdf'
+   *   'forms/equivalence'     // Cloudinary folder
+   * );
+   * const documentUrl = uploadResult.secure_url;
+   * // Save to Client: client.folderEquivalence = documentUrl
+   * // Temp file automatically deleted after upload
+   * ```
+   * 
+   * Special Features:
+   * - Converts PDFs to PNG for better web preview
+   * - Auto-deletes local file after successful upload
+   * - Generates unique public_id with timestamp
+   * 
+   * @param filePath - Local file path (e.g., 'uploads/forms/file.pdf')
+   * @param folder - Cloudinary folder path
+   * @returns Upload result with secure_url
    */
   async uploadFromPath(
     filePath: string,
@@ -97,10 +157,27 @@ export class CloudinaryService {
   }
 
   /**
-   * Upload multiple files from disk to Cloudinary
-   * @param filePaths Array of local file paths
-   * @param folder Cloudinary folder path
-   * @returns Array of upload results with URLs
+   * Upload multiple files at once to Cloudinary
+   * 
+   * USE CASE: Batch upload of multiple documents (not currently used but available)
+   * 
+   * Example Usage:
+   * ```typescript
+   * const filePaths = [
+   *   'uploads/passport.pdf',
+   *   'uploads/cv.pdf',
+   *   'uploads/diploma.pdf'
+   * ];
+   * const results = await this.cloudinaryService.uploadMultipleFromPath(
+   *   filePaths,
+   *   'forms/residence'
+   * );
+   * const urls = results.map(r => r.secure_url);
+   * ```
+   * 
+   * @param filePaths - Array of local file paths
+   * @param folder - Cloudinary folder path
+   * @returns Array of upload results
    */
   async uploadMultipleFromPath(
     filePaths: string[],
@@ -113,8 +190,23 @@ export class CloudinaryService {
   }
 
   /**
-   * Delete a file from Cloudinary by public_id
-   * @param publicId Cloudinary public ID
+   * Delete a file from Cloudinary
+   * 
+   * USE CASE: Remove old blog images when updating posts
+   * 
+   * Example Usage in blogs.service.ts:
+   * ```typescript
+   * // When updating blog post with new image:
+   * const oldUrl = "https://res.cloudinary.com/.../blog-posts/12345-image.png";
+   * const publicId = this.cloudinaryService.extractPublicId(oldUrl);
+   * // publicId = "blog-posts/12345-image"
+   * 
+   * await this.cloudinaryService.deleteFile(publicId);
+   * // Old image deleted from Cloudinary
+   * ```
+   * 
+   * @param publicId - Cloudinary public ID (extracted from URL)
+   * @returns Deletion result
    */
   async deleteFile(publicId: string): Promise<any> {
     try {
@@ -145,9 +237,22 @@ export class CloudinaryService {
   }
 
   /**
-   * Extract public_id from Cloudinary URL
-   * @param url Cloudinary URL
-   * @returns Public ID
+   * Extract Cloudinary public_id from URL
+   * 
+   * USE CASE: Get public_id to delete files
+   * 
+   * Example:
+   * ```typescript
+   * const url = "https://res.cloudinary.com/demo/image/upload/v1234567890/blog-posts/my-image.png";
+   * const publicId = extractPublicId(url);
+   * // Returns: "blog-posts/my-image"
+   * 
+   * // Use for deletion:
+   * await this.cloudinaryService.deleteFile(publicId);
+   * ```
+   * 
+   * @param url - Full Cloudinary URL
+   * @returns Public ID without version and extension
    */
   extractPublicId(url: string): string | null {
     try {

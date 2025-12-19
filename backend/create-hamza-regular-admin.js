@@ -5,10 +5,10 @@ const prisma = new PrismaClient();
 
 async function createHamzaAdmin() {
   try {
-    console.log('🔧 Creating Hamza moderator account...');
+    console.log('🔧 Creating Hamza admin account...');
     
     // Hash password
-    const hashedPassword = await bcrypt.hash('hamza1002', 10);
+    const hashedPassword = await bcrypt.hash('chrif1206', 10);
     
     // Check if admin already exists
     const existingAdmin = await prisma.admin.findFirst({
@@ -35,21 +35,21 @@ async function createHamzaAdmin() {
       console.log('✅ Existing account deleted.');
     }
     
-    // Create moderator
+    // Create admin (not moderator)
     const admin = await prisma.admin.create({
       data: {
         username: 'hamza',
         password: hashedPassword,
         email: 'hamza@canada-immigration.com',
-        role: 'moderator',
+        role: 'admin',
         isEmailVerified: true,
       },
     });
     
-    console.log('\n✅ Hamza moderator created successfully!');
+    console.log('\n✅ Hamza admin created successfully!');
     console.log('═══════════════════════════════════════');
     console.log('Username:', admin.username);
-    console.log('Password: hamza1002');
+    console.log('Password: chrif1206');
     console.log('Email:', admin.email);
     console.log('Role:', admin.role);
     console.log('ID:', admin.id);

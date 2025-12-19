@@ -11,21 +11,21 @@ const Footer: React.FC = () => {
 
     return (
         <footer className="bg-blue-900 text-white" style={{backgroundColor: '#0A2540'}}>
-            <div className="container mx-auto py-8 px-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-start">
+            <div className="container mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 text-center md:text-start">
                     <div>
-                        <h3 className="text-lg font-bold mb-2">Canada Guide Immigration</h3>
-                        <p className="text-gray-400">Votre partenaire de confiance pour réussir votre projet d'immigration.</p>
+                        <h3 className="text-base sm:text-lg font-bold mb-2">Canada Guide Immigration</h3>
+                        <p className="text-sm sm:text-base text-gray-400">Votre partenaire de confiance pour réussir votre projet d'immigration.</p>
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold mb-2">Contact Direct</h3>
-                        <ul className="space-y-2 text-gray-300">
-                            <li><a href="https://wa.me/213000000000" className="hover:text-white">WhatsApp: +213 [Numéro WhatsApp]</a></li>
-                            <li><a href="mailto:contact@canadaguideimmigration.com" className="hover:text-white">Email: contact@canadaguideimmigration.com</a></li>
+                        <h3 className="text-base sm:text-lg font-bold mb-2">Contact Direct</h3>
+                        <ul className="space-y-2 text-sm sm:text-base text-gray-300">
+                            <li><a href="https://wa.me/213000000000" className="hover:text-white break-words">WhatsApp: +213 [Numéro WhatsApp]</a></li>
+                            <li><a href="mailto:contact@canadaguideimmigration.com" className="hover:text-white break-words">Email: contact@canadaguideimmigration.com</a></li>
                         </ul>
                     </div>
                     <div>
-                        <h3 className="text-lg font-bold mb-2">Suivez-nous</h3>
+                        <h3 className="text-base sm:text-lg font-bold mb-2">Suivez-nous</h3>
                         <div className="flex justify-center md:justify-start space-x-4">
                             <SocialIcon href="#">
                                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" /></svg>

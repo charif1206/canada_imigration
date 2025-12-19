@@ -1,0 +1,360 @@
+### ========================================
+### 🍁 CANADA IMMIGRATION - BLOG MODULE TESTS
+### ========================================
+### Complete testing guide for blog/post management
+### Endpoints: create, findAll, findOne, update, remove, toggleLike, findPublished
+### ========================================
+
+### 📌 CONFIGURATION
+@baseUrl = http://localhost:3000
+@contentType = application/json
+
+### 🔑 TOKEN (Update after login)
+@adminToken = your_admin_token_here
+@userId = your_user_id_here
+
+### 📝 POST IDs (Update after creating posts)
+@postId = your_post_id_here
+
+
+### ========================================
+### ✅ TEST 1: GET ALL PUBLISHED POSTS (Public)
+### ========================================
+### Endpoint: GET /posts/published
+### Access: Public (no authentication required)
+### Query: page, limit
+# @name getPublishedPosts
+GET {{baseUrl}}/posts/published?page=1&limit=10
+Content-Type: {{contentType}}
+
+
+### ========================================
+### ✅ TEST 2: GET ALL POSTS (Admin Only)
+### ========================================
+### Endpoint: GET /posts
+### Access: Admin/Moderator only
+### Query: page, limit, published (optional filter)
+# @name getAllPosts
+GET {{baseUrl}}/posts?page=1&limit=10
+Cookie: token={{adminToken}}
+
+
+### ========================================
+### ✅ TEST 3: GET ALL POSTS WITH FILTER (Admin Only)
+### ========================================
+### Filter by published status
+# @name getAllPostsFiltered
+GET {{baseUrl}}/posts?page=1&limit=10&published=true
+Cookie: token={{adminToken}}
+
+
+### ========================================
+### ✅ TEST 4: GET SINGLE POST BY ID (Public)
+### ========================================
+### Endpoint: GET /posts/:id
+### Access: Public (no authentication required)
+# @name getPostById
+GET {{baseUrl}}/posts/{{postId}}
+Content-Type: {{contentType}}
+
+
+### ========================================
+### ✅ TEST 5: CREATE NEW POST (Admin Only)
+### ========================================
+### Endpoint: POST /posts
+### Access: Admin/Moderator only
+### Content-Type: multipart/form-data
+### Required: title, content, image file
+### Optional: published (default true)
+# @name createPost
+POST {{baseUrl}}/posts
+Cookie: token={{adminToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="title"
+
+Complete Guide to Canadian Immigration in 2025
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="content"
+
+This is a comprehensive guide covering all aspects of Canadian immigration including Express Entry, Provincial Nominee Programs, family sponsorship, and work permits. Learn about the latest changes and requirements for 2025.
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="published"
+
+true
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="immigration-guide.jpg"
+Content-Type: image/jpeg
+
+< ./path/to/your/image.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### ========================================
+### ✅ TEST 6: CREATE DRAFT POST (Admin Only)
+### ========================================
+### Create an unpublished post
+# @name createDraftPost
+POST {{baseUrl}}/posts
+Cookie: token={{adminToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="title"
+
+Draft: Study Permit Requirements
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="content"
+
+This is a draft post about study permit requirements that is still being reviewed before publication.
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="published"
+
+false
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="study-permit.jpg"
+Content-Type: image/jpeg
+
+< ./path/to/your/image.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### ========================================
+### ✅ TEST 7: UPDATE POST WITHOUT IMAGE (Admin Only)
+### ========================================
+### Endpoint: PUT /posts/:id
+### Access: Admin/Moderator only
+### Update text fields only, keep existing image
+# @name updatePostNoImage
+PUT {{baseUrl}}/posts/{{postId}}
+Cookie: token={{adminToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="title"
+
+Updated: Complete Guide to Canadian Immigration 2025
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="content"
+
+This guide has been updated with the latest information for 2025 including new pathways and recent policy changes.
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="published"
+
+true
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### ========================================
+### ✅ TEST 8: UPDATE POST WITH NEW IMAGE (Admin Only)
+### ========================================
+### Update post and replace the image
+# @name updatePostWithImage
+PUT {{baseUrl}}/posts/{{postId}}
+Cookie: token={{adminToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="title"
+
+Updated: Complete Guide to Canadian Immigration 2025
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="content"
+
+This guide has been updated with the latest information and a new featured image.
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="published"
+
+true
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="new-immigration-guide.jpg"
+Content-Type: image/jpeg
+
+< ./path/to/your/new-image.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### ========================================
+### ✅ TEST 9: PUBLISH DRAFT POST (Admin Only)
+### ========================================
+### Change published status from false to true
+# @name publishPost
+PUT {{baseUrl}}/posts/{{postId}}
+Cookie: token={{adminToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="published"
+
+true
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### ========================================
+### ✅ TEST 10: UNPUBLISH POST (Admin Only)
+### ========================================
+### Change published status from true to false
+# @name unpublishPost
+PUT {{baseUrl}}/posts/{{postId}}
+Cookie: token={{adminToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="published"
+
+false
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### ========================================
+### ✅ TEST 11: LIKE A POST (Authenticated User)
+### ========================================
+### Endpoint: POST /posts/:id/like
+### Access: Authenticated users only
+### Toggles like (adds if not liked, removes if already liked)
+# @name likePost
+POST {{baseUrl}}/posts/{{postId}}/like
+Cookie: token={{adminToken}}
+Content-Type: {{contentType}}
+
+
+### ========================================
+### ✅ TEST 12: UNLIKE A POST (Authenticated User)
+### ========================================
+### Run the same endpoint again to unlike
+# @name unlikePost
+POST {{baseUrl}}/posts/{{postId}}/like
+Cookie: token={{adminToken}}
+Content-Type: {{contentType}}
+
+
+### ========================================
+### ✅ TEST 13: DELETE POST (Admin Only)
+### ========================================
+### Endpoint: DELETE /posts/:id
+### Access: Admin/Moderator only
+### Deletes post from DB and image from Cloudinary
+# @name deletePost
+DELETE {{baseUrl}}/posts/{{postId}}
+Cookie: token={{adminToken}}
+
+
+### ========================================
+### 🔴 ERROR TESTING
+### ========================================
+
+### ❌ TEST 14: Create Post Without Image (Should Fail)
+# @name createPostNoImage
+POST {{baseUrl}}/posts
+Cookie: token={{adminToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="title"
+
+Test Post Without Image
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="content"
+
+This should fail because image is required.
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### ❌ TEST 15: Create Post Without Authentication (Should Fail - 401)
+# @name createPostNoAuth
+POST {{baseUrl}}/posts
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="title"
+
+Test Post
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="content"
+
+This should fail.
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./path/to/your/image.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### ❌ TEST 16: Get Non-Existent Post (Should Fail - 404)
+# @name getInvalidPost
+GET {{baseUrl}}/posts/invalid-post-id-12345
+Content-Type: {{contentType}}
+
+
+### ❌ TEST 17: Update Non-Existent Post (Should Fail - 404)
+# @name updateInvalidPost
+PUT {{baseUrl}}/posts/invalid-post-id-12345
+Cookie: token={{adminToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="title"
+
+Updated Title
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### ❌ TEST 18: Delete Non-Existent Post (Should Fail - 404)
+# @name deleteInvalidPost
+DELETE {{baseUrl}}/posts/invalid-post-id-12345
+Cookie: token={{adminToken}}
+
+
+### ❌ TEST 19: Like Post Without Authentication (Should Fail - 401)
+# @name likePostNoAuth
+POST {{baseUrl}}/posts/{{postId}}/like
+Content-Type: {{contentType}}
+
+
+### ❌ TEST 20: Create Post With Invalid Data (Should Fail - 400)
+# @name createPostInvalidData
+POST {{baseUrl}}/posts
+Cookie: token={{adminToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="title"
+
+AB
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="content"
+
+Too short
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="test.jpg"
+Content-Type: image/jpeg
+
+< ./path/to/your/image.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### ========================================
+### 📊 TESTING NOTES
+### ========================================
+### 
+### 1. Update @adminToken after logging in via auth.http
+### 2. Update @postId after creating a post (from response)
+### 3. Update @userId with your authenticated user ID
+### 4. Replace image paths with actual file paths on your system
+### 5. Image requirements: max 5MB, types: jpeg, png, gif, webp
+### 6. Admin/Moderator role required for: create, update, delete
+### 7. Authenticated user required for: like/unlike
+### 8. Public access: get published posts, get single post
+### 
+### Expected Status Codes:
+### - 200: Successful GET/PUT/POST operations
+### - 201: Post created successfully
+### - 400: Bad request (validation errors)
+### - 401: Unauthorized (missing/invalid token)
+### - 403: Forbidden (insufficient permissions)
+### - 404: Not found (invalid post ID)
+### - 500: Internal server error
+### 
+### ========================================

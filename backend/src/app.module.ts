@@ -11,6 +11,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { FormsModule } from './modules/forms/forms.module';
 import { PartnersModule } from './modules/partners/partners.module';
 import { ContactModule } from './modules/contact/contact.module';
+import { BlogsModule } from './modules/blogs/blogs.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ContactModule } from './modules/contact/contact.module';
     PartnersModule,
     NotificationsModule,
     ContactModule,
+    BlogsModule,
     // SheetsModule,
     AdminModule,
   ],
