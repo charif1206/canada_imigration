@@ -7,3 +7,6 @@ export { PartnerStatusDisplay } from './PartnerStatusDisplay';
 export { PartnerBenefitsSection } from './PartnerBenefitsSection';
 export { PartnerApplicationForm } from './PartnerApplicationForm';
 export { ResubmitNotice } from './ResubmitNotice';
+export { PartnerBenefitItem } from './PartnerBenefitItem';
+export { PartnerBenefitsGrid } from './PartnerBenefitsGrid';
+export { PartnerStatusCard } from './PartnerStatusCard';

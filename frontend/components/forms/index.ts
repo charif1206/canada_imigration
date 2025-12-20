@@ -6,3 +6,7 @@ export { FormSection } from './FormSection';
 export { FormStatusDisplay } from './FormStatusDisplay';
 export { DateInputWithAge } from './DateInputWithAge';
 export { ResubmissionWarning } from './ResubmissionWarning';
+export { FormCard } from './FormCard';
+export { FormsHelpSection } from './FormsHelpSection';
+export { BackToFormsLink } from './BackToFormsLink';
+export { FormPageHeader } from './FormPageHeader';

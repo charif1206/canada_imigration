@@ -45,7 +45,6 @@ export default function PostCard({ post, onUpdate, onDelete }: PostCardProps) {
 
         {/* Meta Info */}
         <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-          <span>❤️ {post.likesCount} likes</span>
           <span>📅 {formatDate(post.createdAt)}</span>
         </div>
 

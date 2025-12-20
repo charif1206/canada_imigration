@@ -1,77 +1,68 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
-import { useAuth } from '@/lib/useAuth';
+import React, { useRef } from 'react';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { useTimeRemaining } from '@/lib/hooks/useTimeRemaining';
-import {
-    PageHeader,
-    PartnerStatusDisplay,
-    ResubmitNotice,
-    PartnerBenefitsSection,
-    PartnerApplicationForm,
-} from '@/components/partners';
+import { PageHeader, PartnerApplicationForm, ResubmitNotice } from '@/components/partners';
+import { PartnerBenefitsGrid } from '@/components/partners/PartnerBenefitsGrid';
+import { PartnerStatusCard } from '@/components/partners/PartnerStatusCard';
+import { usePartnerState } from '@/lib/hooks/usePartnerState';
+import { PARTNER_CONTENT } from '@/lib/constants/partners.constants';
 
+/**
+ * Partners Page
+ * Displays partner program information and application form
+ */
 const PartnersPage: React.FC = () => {
-    const formRef = useRef<HTMLDivElement>(null);
-    const { client, refreshAuth, isAuthenticated } = useAuth();
-    const timeRemaining = useTimeRemaining(client?.partnerRejectedAt);
-    
-    // Auto-refresh every 5 minutes to check for status updates
-    useEffect(() => {
-        if (isAuthenticated && client) {
-            const interval = setInterval(() => {
-                refreshAuth();
-            }, 5 * 60 * 1000); // 5 minutes
+  const formRef = useRef<HTMLDivElement>(null);
+  const {
+    partnerStatus,
+    partnerRejectedAt,
+    partnerRejectionReason,
+    canResubmit,
+    shouldShowForm,
+  } = usePartnerState();
 
-            return () => clearInterval(interval);
-        }
-    }, [client, refreshAuth, isAuthenticated]);
+  const handleScrollToForm = () => {
+    formRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
-    const handleScrollToForm = () => {
-        formRef.current?.scrollIntoView({ behavior: 'smooth' });
-    };
+  return (
+    <ProtectedRoute>
+      <div className="py-12 sm:py-16 md:py-20 bg-slate-50">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Page Header */}
+          <PageHeader
+            title={PARTNER_CONTENT.PAGE_TITLE}
+            subtitle={PARTNER_CONTENT.PAGE_SUBTITLE}
+          />
 
-    // Check if user can resubmit partner form
-    const canResubmitPartner = client?.partnerStatus !== 'rejected' || 
-        (client?.partnerRejectedAt && timeRemaining.canResubmit);
-    
-    const shouldShowForm = !client?.partnerStatus || 
-        client?.partnerStatus === 'form' || 
-        canResubmitPartner;
+          {/* Status Display or Form */}
+          {!shouldShowForm ? (
+            <PartnerStatusCard
+              status={partnerStatus}
+              rejectedAt={partnerRejectedAt}
+              rejectionReason={partnerRejectionReason}
+            />
+          ) : (
+            <>
+              {/* Resubmit Notice */}
+              {partnerStatus === 'rejected' && canResubmit && (
+                <ResubmitNotice canResubmit={canResubmit} />
+              )}
 
-    return (
-        <ProtectedRoute>
-            <div className="py-12 sm:py-16 md:py-20" style={{ backgroundColor: '#F4F4F4' }}>
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                    <PageHeader 
-                        title="🤝 Programme Partenaire pour Agences de Voyages"
-                        subtitle="Un partenariat gagnant pour accompagner vos clients vers le Canada."
-                    />
+              {/* Benefits Section */}
+              <PartnerBenefitsGrid onScrollToForm={handleScrollToForm} />
 
-                    {!shouldShowForm ? (
-                        <PartnerStatusDisplay
-                            partnerStatus={client?.partnerStatus}
-                            partnerRejectionReason={client?.partnerRejectionReason}
-                            partnerRejectedAt={client?.partnerRejectedAt}
-                        />
-                    ) : (
-                        <>
-                            {client?.partnerStatus === 'rejected' && canResubmitPartner && (
-                                <ResubmitNotice canResubmit={canResubmitPartner} />
-                            )}
-                            
-                            <PartnerBenefitsSection onScrollToForm={handleScrollToForm} />
-            
-                            <div ref={formRef} className="mt-12 sm:mt-16 max-w-4xl mx-auto scroll-mt-24">
-                                <PartnerApplicationForm />
-                            </div>
-                        </>
-                    )}
-                </div>
-            </div>
-        </ProtectedRoute>
-    );
+              {/* Application Form */}
+              <div ref={formRef} className="mt-12 sm:mt-16 max-w-4xl mx-auto scroll-mt-24">
+                <PartnerApplicationForm />
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </ProtectedRoute>
+  );
 };
 
 export default PartnersPage;
